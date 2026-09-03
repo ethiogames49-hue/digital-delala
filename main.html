@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Digital Delala - Find Workers</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6C63FF;
+            --primary-dark: #5A52D5;
+            --primary-light: #8B83FF;
+            --secondary: #FF6584;
+            --success: #2ECC71;
+            --warning: #F39C12;
+            --danger: #E74C3C;
+            --dark: #2D3436;
+            --gray-900: #2D3436;
+            --gray-800: #434A4E;
+            --gray-700: #636E72;
+            --gray-600: #83919E;
+            --gray-500: #A4B0BE;
+            --gray-400: #C8D6E5;
+            --gray-300: #DFE6E9;
+            --gray-200: #F0F3F5;
+            --gray-100: #F8FAFA;
+            --white: #FFFFFF;
+            --shadow-sm: 0 2px 8px rgba(108, 99, 255, 0.08);
+            --shadow-md: 0 4px 20px rgba(108, 99, 255, 0.12);
+            --shadow-lg: 0 8px 40px rgba(108, 99, 255, 0.16);
+            --shadow-xl: 0 16px 60px rgba(108, 99, 255, 0.20);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --radius-xs: 6px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-900);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--gray-200);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 16px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 20px rgba(108, 99, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .logo i {
+            font-size: 28px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px;
+            border-radius: 12px;
+        }
+
+        .logo span {
+            background: linear-gradient(to right, #fff, rgba(255,255,255,0.7));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .admin-link {
+            color: white;
+            background: rgba(255,255,255,0.15);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .admin-link:hover {
+            background: rgba(255,255,255,0.25);
+            transform: scale(1.05);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        .admin-link i {
+            font-size: 18px;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            background: linear-gradient(135deg, #EEF2FF, #E8EDFF);
+            padding: 40px 24px 32px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(108, 99, 255, 0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(108, 99, 255, 0.12);
+            color: var(--primary);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            letter-spacing: 0.5px;
+        }
+
+        .hero h1 {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .hero h1 .highlight {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            color: var(--gray-700);
+            font-size: 18px;
+            margin-bottom: 24px;
+        }
+
+        .search-box {
+            max-width: 560px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-500);
+            font-size: 18px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 16px 20px 16px 52px;
+            border: 2px solid var(--gray-300);
+            border-radius: 50px;
+            font-size: 16px;
+            transition: var(--transition);
+            background: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.1);
+        }
+
+        .search-box input::placeholder {
+            color: var(--gray-500);
+        }
+
+        /* ===== FILTERS ===== */
+        .filters {
+            max-width: 1200px;
+            margin: -16px auto 0;
+            padding: 20px 24px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            z-index: 10;
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid var(--gray-300);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            background: white;
+            transition: var(--transition);
+            min-width: 100px;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.08);
+        }
+
+        .price-input {
+            min-width: 80px !important;
+        }
+
+        .btn-filter {
+            padding: 10px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-filter:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 99, 255, 0.3);
+        }
+
+        .btn-filter:active {
+            transform: translateY(0);
+        }
+
+        /* ===== WORKERS SECTION ===== */
+        .workers-section {
+            max-width: 1200px;
+            margin: 32px auto 0;
+            padding: 0 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .section-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-header h2 i {
+            color: var(--primary);
+        }
+
+        #workerCount {
+            color: var(--gray-600);
+            font-size: 15px;
+            font-weight: 500;
+            background: var(--gray-200);
+            padding: 4px 16px;
+            border-radius: 20px;
+        }
+
+        /* ===== WORKERS GRID ===== */
+        .workers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .worker-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .worker-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .worker-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-light);
+        }
+
+        .worker-card:hover::before {
+            opacity: 1;
+        }
+
+        .worker-card-top {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .worker-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(108, 99, 255, 0.2);
+        }
+
+        .worker-avatar i {
+            font-size: 28px;
+            color: white;
+        }
+
+        .worker-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1.2;
+        }
+
+        .worker-profession {
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .worker-rating {
+            color: var(--warning);
+            font-size: 14px;
+            margin-top: 2px;
+        }
+
+        .worker-rating span {
+            color: var(--gray-600);
+            margin-left: 4px;
+        }
+
+        .worker-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            margin: 12px 0 14px;
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .worker-details span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .worker-details i {
+            color: var(--primary);
+            width: 16px;
+            font-size: 14px;
+        }
+
+        .worker-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        .worker-price {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .worker-price small {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .worker-status {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .worker-status.available {
+            background: #D4EFDF;
+            color: #1A7A4A;
+        }
+
+        .worker-status.unavailable {
+            background: #FADBD8;
+            color: #922B21;
+        }
+
+        .worker-description {
+            font-size: 14px;
+            color: var(--gray-600);
+            margin: 10px 0 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* ===== LOADING ===== */
+        .loading-indicator {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-500);
+        }
+
+        .loading-indicator i {
+            font-size: 40px;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .loading-indicator p {
+            font-size: 16px;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-500);
+        }
+
+        .empty-state i {
+            font-size: 56px;
+            color: var(--gray-400);
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+        }
+
+        /* ===== MODAL ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 24px;
+            animation: modalFade 0.3s ease;
+        }
+
+        @keyframes modalFade {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-content {
+            background: white;
+            max-width: 520px;
+            margin: 40px auto;
+            padding: 32px;
+            border-radius: var(--radius);
+            position: relative;
+            box-shadow: var(--shadow-xl);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--gray-500);
+            transition: var(--transition);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--gray-100);
+        }
+
+        .close-modal:hover {
+            color: var(--gray-900);
+            background: var(--gray-200);
+            transform: rotate(90deg);
+        }
+
+        /* Worker Detail Modal */
+        .worker-detail-avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            box-shadow: 0 8px 24px rgba(108, 99, 255, 0.25);
+        }
+
+        .worker-detail-avatar i {
+            font-size: 40px;
+            color: white;
+        }
+
+        .worker-detail-name {
+            text-align: center;
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .worker-detail-profession {
+            text-align: center;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .worker-detail-rating {
+            text-align: center;
+            color: var(--warning);
+            margin-bottom: 16px;
+        }
+
+        .worker-detail-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+            margin: 16px 0;
+            padding: 16px;
+            background: var(--gray-100);
+            border-radius: var(--radius-sm);
+        }
+
+        .worker-detail-info .item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .worker-detail-info .item .label {
+            font-size: 12px;
+            color: var(--gray-500);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .worker-detail-info .item .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .worker-detail-description {
+            margin: 12px 0 20px;
+            padding: 12px 16px;
+            background: var(--gray-100);
+            border-radius: var(--radius-sm);
+            color: var(--gray-700);
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(108, 99, 255, 0.35);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary i {
+            font-size: 18px;
+        }
+
+        /* Payment Modal */
+        .payment-modal .modal-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .payment-modal .modal-subtitle {
+            text-align: center;
+            color: var(--gray-500);
+            margin-bottom: 20px;
+        }
+
+        .payment-info-box {
+            background: linear-gradient(135deg, #EEF2FF, #E8EDFF);
+            padding: 16px 20px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .payment-info-box .label {
+            color: var(--gray-700);
+            font-weight: 600;
+        }
+
+        .payment-info-box .amount {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .payment-info-box .amount small {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-300);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            transition: var(--transition);
+            background: white;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.08);
+        }
+
+        .form-group .hint {
+            display: block;
+            margin-top: 4px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .form-group .hint strong {
+            color: var(--primary);
+        }
+
+        .btn-pay {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--success), #27AE60);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-pay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(46, 204, 113, 0.35);
+        }
+
+        .btn-pay i {
+            font-size: 18px;
+        }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--gray-900);
+            color: white;
+            padding: 16px 28px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            box-shadow: var(--shadow-xl);
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, var(--success), #27AE60);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, var(--danger), #C0392B);
+        }
+
+        .toast.info {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .workers-grid {
+                grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 28px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+
+            .filters {
+                padding: 16px 20px;
+                margin-top: -12px;
+            }
+
+            .filter-row {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .filter-group select,
+            .filter-group input {
+                min-width: unset;
+            }
+
+            .btn-filter {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .workers-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .workers-section {
+                padding: 0 16px;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .modal-content {
+                margin: 20px auto;
+                padding: 24px;
+            }
+
+            .worker-detail-info {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                padding: 12px 16px;
+            }
+
+            .logo {
+                font-size: 18px;
+            }
+
+            .logo i {
+                font-size: 22px;
+                padding: 6px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero {
+                padding: 28px 16px 24px;
+            }
+
+            .hero h1 {
+                font-size: 24px;
+            }
+
+            .search-box input {
+                padding: 14px 16px 14px 46px;
+                font-size: 15px;
+            }
+
+            .worker-card {
+                padding: 18px;
+            }
+
+            .worker-detail-avatar {
+                width: 72px;
+                height: 72px;
+            }
+
+            .worker-detail-avatar i {
+                font-size: 30px;
+            }
+
+            .worker-detail-name {
+                font-size: 22px;
+            }
+
+            .payment-info-box {
+                flex-direction: column;
+                gap: 4px;
+                text-align: center;
+            }
+
+            .payment-info-box .amount {
+                font-size: 24px;
+            }
+
+            .toast {
+                padding: 12px 20px;
+                font-size: 14px;
+                bottom: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-briefcase"></i>
+                <span>Digital Delala</span>
+            </div>
+            <div class="header-actions">
+                <a href="/admin.html" class="admin-link" title="Admin Panel">
+                    <i class="fas fa-user-shield"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-rocket"></i> Find Workers Instantly
+            </div>
+            <h1>Connect with <span class="highlight">Skilled Professionals</span></h1>
+            <p>Search, connect, and hire the best workers in your area</p>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search by name, profession, or location...">
+            </div>
+        </div>
+    </section>
+
+    <!-- FILTERS -->
+    <section class="filters">
+        <div class="filter-row">
+            <div class="filter-group">
+                <select id="professionFilter">
+                    <option value="">All Professions</option>
+                    <option value="plumber">Plumber</option>
+                    <option value="electrician">Electrician</option>
+                    <option value="carpenter">Carpenter</option>
+                    <option value="painter">Painter</option>
+                    <option value="cleaner">Cleaner</option>
+                    <option value="driver">Driver</option>
+                    <option value="gardener">Gardener</option>
+                    <option value="chef">Chef</option>
+                    <option value="tutor">Tutor</option>
+                    <option value="mechanic">Mechanic</option>
+                    <option value="nanny">Nanny</option>
+                    <option value="security">Security Guard</option>
+                </select>
+                <select id="locationFilter">
+                    <option value="">All Locations</option>
+                    <option value="addis ababa">Addis Ababa</option>
+                    <option value="bahir dar">Bahir Dar</option>
+                    <option value="gondar">Gondar</option>
+                    <option value="hawassa">Hawassa</option>
+                    <option value="dire dawa">Dire Dawa</option>
+                    <option value="mekelle">Mekelle</option>
+                    <option value="jimma">Jimma</option>
+                    <option value="debre zeit">Debre Zeit</option>
+                </select>
+            </div>
+            <div class="filter-group" style="flex: 0.7;">
+                <input type="number" id="minPrice" placeholder="Min Price" class="price-input">
+                <input type="number" id="maxPrice" placeholder="Max Price" class="price-input">
+                <button id="applyFiltersBtn" class="btn-filter">
+                    <i class="fas fa-sliders-h"></i> Apply
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- WORKERS -->
+    <section class="workers-section">
+        <div class="section-header">
+            <h2><i class="fas fa-users"></i> Available Workers</h2>
+            <span id="workerCount">0 workers found</span>
+        </div>
+        <div id="workersGrid" class="workers-grid">
+            <!-- Workers rendered here -->
+        </div>
+        <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading workers...</p>
+        </div>
+    </section>
+
+    <!-- WORKER DETAIL MODAL -->
+    <div id="workerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="workerDetailContent"></div>
+        </div>
+    </div>
+
+    <!-- PAYMENT MODAL -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content payment-modal">
+            <span class="close-modal">&times;</span>
+            <h2 class="modal-title"><i class="fas fa-phone" style="color: var(--primary);"></i> Unlock Phone Number</h2>
+            <p class="modal-subtitle">Pay a small fee to get the worker's contact</p>
+            <div id="paymentContent">
+                <div class="payment-info-box">
+                    <span class="label">Amount to Pay</span>
+                    <span class="amount" id="paymentAmount">0 <small>ETB</small></span>
+                </div>
+                <form id="paymentForm">
+                    <div class="form-group">
+                        <label for="bossName">Your Full Name</label>
+                        <input type="text" id="bossName" placeholder="e.g., Abebe Kebede" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bossEmail">Your Email</label>
+                        <input type="email" id="bossEmail" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="telebirrId">Telebirr Transaction ID</label>
+                        <input type="text" id="telebirrId" placeholder="Enter Telebirr transaction ID" required>
+                        <span class="hint">Send payment to: <strong>0912345678</strong> (Demo Telebirr)</span>
+                    </div>
+                    <button type="submit" class="btn-pay">
+                        <i class="fas fa-check-circle"></i> Verify & Get Number
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // ===== API CONFIG =====
+        const API_URL = window.location.origin + '/api';
+
+        // ===== DOM REFS =====
+        const workersGrid = document.getElementById('workersGrid');
+        const searchInput = document.getElementById('searchInput');
+        const professionFilter = document.getElementById('professionFilter');
+        const locationFilter = document.getElementById('locationFilter');
+        const minPrice = document.getElementById('minPrice');
+        const maxPrice = document.getElementById('maxPrice');
+        const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+        const workerCount = document.getElementById('workerCount');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const workerModal = document.getElementById('workerModal');
+        const paymentModal = document.getElementById('paymentModal');
+        const workerDetailContent = document.getElementById('workerDetailContent');
+        const paymentAmount = document.getElementById('paymentAmount');
+        const paymentForm = document.getElementById('paymentForm');
+        const toast = document.getElementById('toast');
+
+        let currentWorkerId = null;
+        let allWorkers = [];
+
+        // ===== TOAST =====
+        function showToast(message, type = 'info') {
+            toast.textContent = message;
+            toast.className = 'toast show ' + type;
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
+                toast.className = 'toast';
+            }, 3500);
+        }
+
+        // ===== FETCH WORKERS =====
+        async function fetchWorkers() {
+            try {
+                loadingIndicator.style.display = 'block';
+                workersGrid.innerHTML = '';
+
+                const search = searchInput.value.trim();
+                const profession = professionFilter.value;
+                const location = locationFilter.value;
+                const min = minPrice.value;
+                const max = maxPrice.value;
+
+                let url = `${API_URL}/workers?`;
+                if (search) url += `search=${encodeURIComponent(search)}&`;
+                if (profession) url += `profession=${encodeURIComponent(profession)}&`;
+                if (location) url += `location=${encodeURIComponent(location)}&`;
+                if (min) url += `minPrice=${min}&`;
+                if (max) url += `maxPrice=${max}&`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    allWorkers = data.data;
+                    renderWorkers(allWorkers);
+                } else {
+                    showToast('Error fetching workers', 'error');
+                }
+            } catch (error) {
+                showToast('Network error. Please try again.', 'error');
+                console.error('Error:', error);
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // ===== RENDER WORKERS =====
+        function renderWorkers(workers) {
+            if (workers.length === 0) {
+                workersGrid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <i class="fas fa-search"></i>
+                        <h3>No workers found</h3>
+                        <p>Try adjusting your search or filters</p>
+                    </div>
+                `;
+                workerCount.textContent = '0 workers found';
+                return;
+            }
+
+            workersGrid.innerHTML = workers.map(worker => `
+                <div class="worker-card" onclick="openWorkerDetail('${worker._id}')">
+                    <div class="worker-card-top">
+                        <div class="worker-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <div class="worker-name">${worker.name}</div>
+                            <div class="worker-profession">${worker.profession}</div>
+                            ${worker.rating > 0 ? `<div class="worker-rating"><i class="fas fa-star"></i> ${worker.rating.toFixed(1)} <span>(${Math.floor(worker.rating * 5)} reviews)</span></div>` : ''}
+                        </div>
+                    </div>
+                    <div class="worker-details">
+                        <span><i class="fas fa-map-marker-alt"></i> ${worker.location}</span>
+                        <span><i class="fas fa-calendar-alt"></i> ${worker.experience} yrs exp</span>
+                    </div>
+                    ${worker.description ? `<div class="worker-description">${worker.description.substring(0, 80)}${worker.description.length > 80 ? '...' : ''}</div>` : ''}
+                    <div class="worker-bottom">
+                        <span class="worker-price">${worker.price} <small>ETB</small></span>
+                        <span class="worker-status ${worker.isAvailable ? 'available' : 'unavailable'}">
+                            <i class="fas ${worker.isAvailable ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                            ${worker.isAvailable ? 'Available' : 'Unavailable'}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+
+            workerCount.textContent = `${workers.length} worker${workers.length !== 1 ? 's' : ''} found`;
+        }
+
+        // ===== OPEN WORKER DETAIL =====
+        async function openWorkerDetail(workerId) {
+            try {
+                const response = await fetch(`${API_URL}/workers/${workerId}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    showToast('Error loading worker details', 'error');
+                    return;
+                }
+
+                const worker = data.data;
+                currentWorkerId = workerId;
+
+                workerDetailContent.innerHTML = `
+                    <div style="text-align: center;">
+                        <div class="worker-detail-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="worker-detail-name">${worker.name}</div>
+                        <div class="worker-detail-profession">${worker.profession}</div>
+                        ${worker.rating > 0 ? `<div class="worker-detail-rating"><i class="fas fa-star"></i> ${worker.rating.toFixed(1)} (${Math.floor(worker.rating * 5)} reviews)</div>` : ''}
+                    </div>
+                    <div class="worker-detail-info">
+                        <div class="item">
+                            <span class="label">Location</span>
+                            <span class="value"><i class="fas fa-map-marker-alt" style="color: var(--primary); font-size: 14px;"></i> ${worker.location}</span>
+                        </div>
+                        <div class="item">
+                            <span class="label">Experience</span>
+                            <span class="value">${worker.experience} years</span>
+                        </div>
+                        <div class="item">
+                            <span class="label">Price</span>
+                            <span class="value" style="color: var(--primary);">${worker.price} ETB</span>
+                        </div>
+                        <div class="item">
+                            <span class="label">Status</span>
+                            <span class="value" style="color: ${worker.isAvailable ? 'var(--success)' : 'var(--danger)'};">
+                                <i class="fas ${worker.isAvailable ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                                ${worker.isAvailable ? 'Available' : 'Unavailable'}
+                            </span>
+                        </div>
+                    </div>
+                    ${worker.description ? `<div class="worker-detail-description"><i class="fas fa-quote-left" style="color: var(--primary); opacity: 0.5; margin-right: 8px;"></i>${worker.description}</div>` : ''}
+                    <button onclick="openPaymentModal('${worker._id}', ${worker.price})" class="btn-primary" ${!worker.isAvailable ? 'disabled' : ''}>
+                        <i class="fas ${worker.isAvailable ? 'fa-phone' : 'fa-ban'}"></i>
+                        ${worker.isAvailable ? 'Get Phone Number' : 'Not Available'}
+                    </button>
+                `;
+
+                workerModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            } catch (error) {
+                showToast('Error loading worker details', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        // ===== OPEN PAYMENT MODAL =====
+        function openPaymentModal(workerId, price) {
+            currentWorkerId = workerId;
+            paymentAmount.innerHTML = `${price} <small>ETB</small>`;
+            paymentModal.style.display = 'block';
+            workerModal.style.display = 'none';
+            paymentForm.reset();
+        }
+
+        // ===== HANDLE PAYMENT =====
+        paymentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const bossName = document.getElementById('bossName').value.trim();
+            const bossEmail = document.getElementById('bossEmail').value.trim();
+            const telebirrId = document.getElementById('telebirrId').value.trim();
+
+            if (!bossName || !bossEmail || !telebirrId) {
+                showToast('Please fill all fields', 'error');
+                return;
+            }
+
+            const priceText = paymentAmount.textContent;
+            const amount = parseInt(priceText.replace(/[^0-9]/g, ''));
+
+            try {
+                const response = await fetch(`${API_URL}/workers/${currentWorkerId}/phone`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bossName,
+                        bossEmail,
+                        telebirrTransactionId: telebirrId,
+                        amount: amount
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`✅ Phone Number: ${data.data.phoneNumber}`, 'success');
+                    paymentModal.style.display = 'none';
+                    setTimeout(() => {
+                        workerModal.style.display = 'none';
+                        document.body.style.overflow = 'auto';
+                    }, 2000);
+                } else {
+                    showToast(data.error || 'Payment verification failed', 'error');
+                }
+            } catch (error) {
+                showToast('Network error. Please try again.', 'error');
+                console.error('Error:', error);
+            }
+        });
+
+        // ===== CLOSE MODALS =====
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.onclick = function() {
+                const modal = this.closest('.modal');
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            };
+        });
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        };
+
+        // ===== SEARCH & FILTERS =====
+        let searchTimeout;
+
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(fetchWorkers, 300);
+        });
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                clearTimeout(searchTimeout);
+                fetchWorkers();
+            }
+        });
+
+        applyFiltersBtn.addEventListener('click', fetchWorkers);
+
+        // ===== INIT =====
+        document.addEventListener('DOMContentLoaded', fetchWorkers);
+
+        // Close modals with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (paymentModal.style.display === 'block') {
+                    paymentModal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+                if (workerModal.style.display === 'block') {
+                    workerModal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            }
+        });
+
+        console.log('🚀 Digital Delala - Find Workers');
+        console.log('📱 Made with ❤️ for Ethiopia');
+    </script>
+</body>
+</html>
