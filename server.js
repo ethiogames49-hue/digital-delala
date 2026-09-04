@@ -50,8 +50,17 @@ app.use('/api/', limiter);
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static('public'));        // serve static files from /public
 app.use('/uploads', express.static(uploadDir)); // serve uploaded images
+
+// ===== SERVE HTML FILES (ADDED) =====
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'main.html'));
+});
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+// ====================================
 
 // MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
@@ -71,7 +80,7 @@ const workerSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true },
   price: { type: Number, required: true },
   rating: { type: Number, default: 0 },
-  image: { type: String }, // stores filename only
+  image: { type: String },
   description: { type: String },
   isAvailable: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
@@ -210,14 +219,12 @@ app.post('/api/admin/workers', authenticateToken, upload.single('image'), async 
   try {
     const workerData = { ...req.body };
     if (req.file) workerData.image = req.file.filename;
-    // Parse isAvailable
     if (workerData.isAvailable === 'true') workerData.isAvailable = true;
     else if (workerData.isAvailable === 'false') workerData.isAvailable = false;
     const worker = new Worker(workerData);
     await worker.save();
     res.status(201).json({ success: true, data: worker });
   } catch (error) {
-    // If upload failed, remove file if any
     if (req.file) fs.unlinkSync(req.file.path);
     res.status(400).json({ error: error.message });
   }
@@ -231,14 +238,12 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
 
     const updateData = { ...req.body };
     if (req.file) {
-      // delete old image if exists
       if (worker.image) {
         const oldPath = path.join(uploadDir, worker.image);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
       }
       updateData.image = req.file.filename;
     }
-    // Parse isAvailable
     if (updateData.isAvailable === 'true') updateData.isAvailable = true;
     else if (updateData.isAvailable === 'false') updateData.isAvailable = false;
 
