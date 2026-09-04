@@ -50,25 +50,21 @@ app.use('/api/', limiter);
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));        // serve static files from /public
-app.use('/uploads', express.static(uploadDir)); // serve uploaded images
+app.use(express.static('public'));
+app.use('/uploads', express.static(uploadDir));
 
-// ===== SERVE HTML FILES (ADDED) =====
+// Serve HTML files
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'main.html'));
 });
 app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
-// ====================================
 
 // MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ Connected to MongoDB'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // ============ MODELS ============
 
@@ -80,7 +76,7 @@ const workerSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true },
   price: { type: Number, required: true },
   rating: { type: Number, default: 0 },
-  image: { type: String },
+  image: { type: String }, // can be filename or full URL
   description: { type: String },
   isAvailable: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
@@ -214,36 +210,70 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Create worker (with image)
+// Create worker (with image or URL)
 app.post('/api/admin/workers', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const workerData = { ...req.body };
-    if (req.file) workerData.image = req.file.filename;
+    // If a file was uploaded, use it
+    if (req.file) {
+      workerData.image = req.file.filename;
+    } else if (req.body.imageUrl && req.body.imageUrl.trim() !== '') {
+      // If imageUrl is provided, store it directly (could be any URL)
+      workerData.image = req.body.imageUrl.trim();
+    }
+    // Convert isAvailable string to boolean
     if (workerData.isAvailable === 'true') workerData.isAvailable = true;
     else if (workerData.isAvailable === 'false') workerData.isAvailable = false;
+
     const worker = new Worker(workerData);
     await worker.save();
     res.status(201).json({ success: true, data: worker });
   } catch (error) {
+    // If file was uploaded but save failed, delete the file
     if (req.file) fs.unlinkSync(req.file.path);
     res.status(400).json({ error: error.message });
   }
 });
 
-// Update worker (with image)
+// Update worker (with image or URL)
 app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
 
     const updateData = { ...req.body };
+    // Handle image: file takes priority
     if (req.file) {
-      if (worker.image) {
+      // Remove old image if it was a local file
+      if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
         const oldPath = path.join(uploadDir, worker.image);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
       }
       updateData.image = req.file.filename;
+    } else if (req.body.imageUrl && req.body.imageUrl.trim() !== '') {
+      // If imageUrl provided, store it (overwrites previous)
+      updateData.image = req.body.imageUrl.trim();
+      // If previous image was a local file, remove it
+      if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
+        const oldPath = path.join(uploadDir, worker.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+    } else {
+      // If neither file nor URL provided, keep existing image (or remove? we keep)
+      // To remove image, user would send empty string – we handle that
+      if (req.body.image === '') {
+        // remove image
+        if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
+          const oldPath = path.join(uploadDir, worker.image);
+          if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        }
+        updateData.image = null;
+      } else {
+        // keep existing
+        updateData.image = worker.image;
+      }
     }
+
     if (updateData.isAvailable === 'true') updateData.isAvailable = true;
     else if (updateData.isAvailable === 'false') updateData.isAvailable = false;
 
@@ -256,12 +286,13 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
   }
 });
 
-// Delete worker (and its image)
+// Delete worker
 app.delete('/api/admin/workers/:id', authenticateToken, async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
-    if (worker.image) {
+    // Remove local image if exists
+    if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
       const oldPath = path.join(uploadDir, worker.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
