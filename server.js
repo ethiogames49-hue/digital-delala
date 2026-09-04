@@ -12,79 +12,59 @@ const fs = require('fs');
 
 const app = express();
 
-// ===== FIND PROJECT ROOT (where main.html resides) =====
-function findRoot() {
-  let current = __dirname;
-  while (true) {
-    if (fs.existsSync(path.join(current, 'main.html'))) {
-      return current;
-    }
-    const parent = path.dirname(current);
-    if (parent === current) break; // reached filesystem root
-    current = parent;
-  }
-  return __dirname; // fallback
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
-const ROOT = findRoot();
-console.log(`📁 Project root: ${ROOT}`);
 
-// ===== SECURITY & MIDDLEWARE =====
+// Multer config
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, unique + path.extname(file.originalname));
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    const allowed = /jpeg|jpg|png|gif|webp/;
+    const isValid = allowed.test(path.extname(file.originalname).toLowerCase()) &&
+                    allowed.test(file.mimetype);
+    cb(null, isValid);
+  }
+});
+
+// Security
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
+// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100
 });
 app.use('/api/', limiter);
 
+// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
+app.use('/uploads', express.static(uploadDir));
 
-// ===== STATIC FILES SERVING (safe extensions) =====
-const safeExtensions = ['.html', '.htm', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.svg'];
-const isSafeFile = (filePath) => {
-  const ext = path.extname(filePath).toLowerCase();
-  return safeExtensions.includes(ext);
-};
-
-app.use((req, res, next) => {
-  if (req.method !== 'GET') return next();
-  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
-
-  const filePath = path.join(ROOT, req.path);
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile() && isSafeFile(filePath)) {
-    express.static(ROOT)(req, res, next);
-  } else {
-    next();
-  }
-});
-
-// Root -> main.html
+// ✅ Root route -> main.html
 app.get('/', (req, res) => {
-  res.sendFile(path.join(ROOT, 'main.html'));
+  res.sendFile(path.join(__dirname, 'public', 'main.html'));
 });
 
-// Admin -> admin.html
-app.get('/admin.html', (req, res) => {
-  res.sendFile(path.join(ROOT, 'admin.html'));
-});
-
-// ===== MULTER (memory storage) =====
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp/;
-    const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mimeOk = allowed.test(file.mimetype);
-    cb(null, extOk && mimeOk);
-  }
-});
-
-// ===== MONGODB =====
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ Connected to MongoDB'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+// MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('✅ Connected to MongoDB'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
 // ============ MODELS ============
 
@@ -96,7 +76,7 @@ const workerSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true },
   price: { type: Number, required: true },
   rating: { type: Number, default: 0 },
-  image: { type: String }, // Base64 data URI
+  image: { type: String },
   description: { type: String },
   isAvailable: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
@@ -233,16 +213,14 @@ app.post('/api/admin/login', async (req, res) => {
 app.post('/api/admin/workers', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const workerData = { ...req.body };
-    if (req.file) {
-      const base64 = req.file.buffer.toString('base64');
-      workerData.image = `data:${req.file.mimetype};base64,${base64}`;
-    }
+    if (req.file) workerData.image = req.file.filename;
     if (workerData.isAvailable === 'true') workerData.isAvailable = true;
     else if (workerData.isAvailable === 'false') workerData.isAvailable = false;
     const worker = new Worker(workerData);
     await worker.save();
     res.status(201).json({ success: true, data: worker });
   } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path);
     res.status(400).json({ error: error.message });
   }
 });
@@ -254,8 +232,11 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
 
     const updateData = { ...req.body };
     if (req.file) {
-      const base64 = req.file.buffer.toString('base64');
-      updateData.image = `data:${req.file.mimetype};base64,${base64}`;
+      if (worker.image) {
+        const oldPath = path.join(uploadDir, worker.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      updateData.image = req.file.filename;
     }
     if (updateData.isAvailable === 'true') updateData.isAvailable = true;
     else if (updateData.isAvailable === 'false') updateData.isAvailable = false;
@@ -264,6 +245,7 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
     await worker.save();
     res.json({ success: true, data: worker });
   } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path);
     res.status(400).json({ error: error.message });
   }
 });
@@ -272,6 +254,10 @@ app.delete('/api/admin/workers/:id', authenticateToken, async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
+    if (worker.image) {
+      const oldPath = path.join(uploadDir, worker.image);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
     await worker.deleteOne();
     res.json({ success: true, message: 'Worker deleted successfully' });
   } catch (error) {
