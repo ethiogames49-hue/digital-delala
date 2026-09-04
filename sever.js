@@ -12,6 +12,22 @@ const fs = require('fs');
 
 const app = express();
 
+// ===== FIND PROJECT ROOT (where main.html resides) =====
+function findRoot() {
+  let current = __dirname;
+  while (true) {
+    if (fs.existsSync(path.join(current, 'main.html'))) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) break; // reached filesystem root
+    current = parent;
+  }
+  return __dirname; // fallback
+}
+const ROOT = findRoot();
+console.log(`📁 Project root: ${ROOT}`);
+
 // ===== SECURITY & MIDDLEWARE =====
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
@@ -24,49 +40,44 @@ app.use('/api/', limiter);
 app.use(cors());
 app.use(express.json());
 
-// ===== STATIC FILES SERVING (from root) =====
-// Only allow safe file extensions to be served (no .env, no .js, etc.)
+// ===== STATIC FILES SERVING (safe extensions) =====
 const safeExtensions = ['.html', '.htm', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.svg'];
 const isSafeFile = (filePath) => {
   const ext = path.extname(filePath).toLowerCase();
   return safeExtensions.includes(ext);
 };
 
-// Custom middleware to serve static files from root safely
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
 
-  const filePath = path.join(__dirname, req.path);
-  // Check if it's a file and safe
+  const filePath = path.join(ROOT, req.path);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile() && isSafeFile(filePath)) {
-    // Use express.static to serve it
-    express.static('.')(req, res, next);
+    express.static(ROOT)(req, res, next);
   } else {
-    // Let other routes handle it (e.g., fallback to main.html)
     next();
   }
 });
 
-// Root route -> main.html
+// Root -> main.html
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'main.html'));
+  res.sendFile(path.join(ROOT, 'main.html'));
 });
 
-// Admin page -> admin.html
+// Admin -> admin.html
 app.get('/admin.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
+  res.sendFile(path.join(ROOT, 'admin.html'));
 });
 
-// ===== MULTER (memory storage, no disk) =====
+// ===== MULTER (memory storage) =====
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|gif|webp/;
-    const isValid = allowed.test(path.extname(file.originalname).toLowerCase()) &&
-                    allowed.test(file.mimetype);
-    cb(null, isValid);
+    const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
+    const mimeOk = allowed.test(file.mimetype);
+    cb(null, extOk && mimeOk);
   }
 });
 
@@ -85,7 +96,7 @@ const workerSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true },
   price: { type: Number, required: true },
   rating: { type: Number, default: 0 },
-  image: { type: String }, // stores Base64 data URI
+  image: { type: String }, // Base64 data URI
   description: { type: String },
   isAvailable: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
@@ -219,16 +230,13 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Create worker (with image as Base64)
 app.post('/api/admin/workers', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const workerData = { ...req.body };
-    // Convert image buffer to Base64 data URI if present
     if (req.file) {
       const base64 = req.file.buffer.toString('base64');
       workerData.image = `data:${req.file.mimetype};base64,${base64}`;
     }
-    // Parse isAvailable
     if (workerData.isAvailable === 'true') workerData.isAvailable = true;
     else if (workerData.isAvailable === 'false') workerData.isAvailable = false;
     const worker = new Worker(workerData);
@@ -239,19 +247,16 @@ app.post('/api/admin/workers', authenticateToken, upload.single('image'), async 
   }
 });
 
-// Update worker (with image as Base64)
 app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
 
     const updateData = { ...req.body };
-    // Convert new image to Base64 if present
     if (req.file) {
       const base64 = req.file.buffer.toString('base64');
       updateData.image = `data:${req.file.mimetype};base64,${base64}`;
     }
-    // Parse isAvailable
     if (updateData.isAvailable === 'true') updateData.isAvailable = true;
     else if (updateData.isAvailable === 'false') updateData.isAvailable = false;
 
@@ -263,7 +268,6 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
   }
 });
 
-// Delete worker (no image file to delete, just remove from DB)
 app.delete('/api/admin/workers/:id', authenticateToken, async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
