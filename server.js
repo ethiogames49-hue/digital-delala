@@ -51,12 +51,7 @@ app.use('/api/', limiter);
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/uploads', express.static(uploadDir));
-
-// ✅ Root route -> main.html
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'main.html'));
-});
+app.use('/uploads', express.static(uploadDir)); // serve uploaded images
 
 // MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
@@ -76,7 +71,7 @@ const workerSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true },
   price: { type: Number, required: true },
   rating: { type: Number, default: 0 },
-  image: { type: String },
+  image: { type: String }, // stores filename only
   description: { type: String },
   isAvailable: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
@@ -210,21 +205,25 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
+// Create worker (with image)
 app.post('/api/admin/workers', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const workerData = { ...req.body };
     if (req.file) workerData.image = req.file.filename;
+    // Parse isAvailable
     if (workerData.isAvailable === 'true') workerData.isAvailable = true;
     else if (workerData.isAvailable === 'false') workerData.isAvailable = false;
     const worker = new Worker(workerData);
     await worker.save();
     res.status(201).json({ success: true, data: worker });
   } catch (error) {
+    // If upload failed, remove file if any
     if (req.file) fs.unlinkSync(req.file.path);
     res.status(400).json({ error: error.message });
   }
 });
 
+// Update worker (with image)
 app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
@@ -232,12 +231,14 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
 
     const updateData = { ...req.body };
     if (req.file) {
+      // delete old image if exists
       if (worker.image) {
         const oldPath = path.join(uploadDir, worker.image);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
       }
       updateData.image = req.file.filename;
     }
+    // Parse isAvailable
     if (updateData.isAvailable === 'true') updateData.isAvailable = true;
     else if (updateData.isAvailable === 'false') updateData.isAvailable = false;
 
@@ -250,6 +251,7 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
   }
 });
 
+// Delete worker (and its image)
 app.delete('/api/admin/workers/:id', authenticateToken, async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
