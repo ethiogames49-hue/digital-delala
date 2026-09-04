@@ -12,22 +12,55 @@ const fs = require('fs');
 
 const app = express();
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, 'public/uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// ===== SECURITY & MIDDLEWARE =====
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
-// Multer config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, unique + path.extname(file.originalname));
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100
+});
+app.use('/api/', limiter);
+
+app.use(cors());
+app.use(express.json());
+
+// ===== STATIC FILES SERVING (from root) =====
+// Only allow safe file extensions to be served (no .env, no .js, etc.)
+const safeExtensions = ['.html', '.htm', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.svg'];
+const isSafeFile = (filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  return safeExtensions.includes(ext);
+};
+
+// Custom middleware to serve static files from root safely
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
+
+  const filePath = path.join(__dirname, req.path);
+  // Check if it's a file and safe
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile() && isSafeFile(filePath)) {
+    // Use express.static to serve it
+    express.static('.')(req, res, next);
+  } else {
+    // Let other routes handle it (e.g., fallback to main.html)
+    next();
   }
 });
+
+// Root route -> main.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'main.html'));
+});
+
+// Admin page -> admin.html
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// ===== MULTER (memory storage, no disk) =====
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|gif|webp/;
@@ -37,29 +70,10 @@ const upload = multer({
   }
 });
 
-// Security
-app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100
-});
-app.use('/api/', limiter);
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
-app.use('/uploads', express.static(uploadDir)); // serve uploaded images
-
-// MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ Connected to MongoDB'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
+// ===== MONGODB =====
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // ============ MODELS ============
 
@@ -71,7 +85,7 @@ const workerSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true },
   price: { type: Number, required: true },
   rating: { type: Number, default: 0 },
-  image: { type: String }, // stores filename only
+  image: { type: String }, // stores Base64 data URI
   description: { type: String },
   isAvailable: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
@@ -205,11 +219,15 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Create worker (with image)
+// Create worker (with image as Base64)
 app.post('/api/admin/workers', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const workerData = { ...req.body };
-    if (req.file) workerData.image = req.file.filename;
+    // Convert image buffer to Base64 data URI if present
+    if (req.file) {
+      const base64 = req.file.buffer.toString('base64');
+      workerData.image = `data:${req.file.mimetype};base64,${base64}`;
+    }
     // Parse isAvailable
     if (workerData.isAvailable === 'true') workerData.isAvailable = true;
     else if (workerData.isAvailable === 'false') workerData.isAvailable = false;
@@ -217,26 +235,21 @@ app.post('/api/admin/workers', authenticateToken, upload.single('image'), async 
     await worker.save();
     res.status(201).json({ success: true, data: worker });
   } catch (error) {
-    // If upload failed, remove file if any
-    if (req.file) fs.unlinkSync(req.file.path);
     res.status(400).json({ error: error.message });
   }
 });
 
-// Update worker (with image)
+// Update worker (with image as Base64)
 app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
 
     const updateData = { ...req.body };
+    // Convert new image to Base64 if present
     if (req.file) {
-      // delete old image if exists
-      if (worker.image) {
-        const oldPath = path.join(uploadDir, worker.image);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-      updateData.image = req.file.filename;
+      const base64 = req.file.buffer.toString('base64');
+      updateData.image = `data:${req.file.mimetype};base64,${base64}`;
     }
     // Parse isAvailable
     if (updateData.isAvailable === 'true') updateData.isAvailable = true;
@@ -246,20 +259,15 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
     await worker.save();
     res.json({ success: true, data: worker });
   } catch (error) {
-    if (req.file) fs.unlinkSync(req.file.path);
     res.status(400).json({ error: error.message });
   }
 });
 
-// Delete worker (and its image)
+// Delete worker (no image file to delete, just remove from DB)
 app.delete('/api/admin/workers/:id', authenticateToken, async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
-    if (worker.image) {
-      const oldPath = path.join(uploadDir, worker.image);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
     await worker.deleteOne();
     res.json({ success: true, message: 'Worker deleted successfully' });
   } catch (error) {
