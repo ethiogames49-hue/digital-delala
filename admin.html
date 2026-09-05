@@ -304,6 +304,18 @@
             font-size:12px;
         }
         .btn-edit:hover { background:var(--primary); color:white; }
+        .btn-success {
+            padding:4px 12px;
+            background:#D4EFDF;
+            color:#1A7A4A;
+            border:none;
+            border-radius:var(--radius-xs);
+            font-weight:600;
+            cursor:pointer;
+            transition:var(--transition);
+            font-size:12px;
+        }
+        .btn-success:hover { background:#1A7A4A; color:white; }
         .tab-content { display:none; }
         .tab-content.active { display:block; }
 
@@ -344,7 +356,7 @@
         .stat-value { font-size:20px; font-weight:800; color:var(--gray-900); line-height:1.2; }
 
         /* Workers & Transactions list compact */
-        .workers-list, .transactions-list { display:flex; flex-direction:column; gap:8px; }
+        .workers-list, .transactions-list, .pending-list { display:flex; flex-direction:column; gap:8px; }
         .worker-item {
             background:white;
             padding:12px 16px;
@@ -393,7 +405,7 @@
         .worker-info .details .unavailable { color:var(--danger); }
         .worker-actions { display:flex; gap:6px; }
 
-        .transaction-item {
+        .transaction-item, .pending-item {
             background:white;
             padding:12px 16px;
             border-radius:var(--radius-sm);
@@ -405,7 +417,7 @@
             flex-wrap:wrap;
             gap:8px;
         }
-        .transaction-item:hover { border-color:var(--primary-light); }
+        .transaction-item:hover, .pending-item:hover { border-color:var(--primary-light); }
         .transaction-info .worker { font-weight:700; font-size:15px; }
         .transaction-info .boss { color:var(--gray-600); font-size:13px; }
         .transaction-info .id { font-size:12px; color:var(--gray-400); display:block; }
@@ -656,6 +668,8 @@
                 <button class="nav-item active" data-tab="dashboard"><i class="fas fa-chart-pie"></i><span>Dashboard</span></button>
                 <button class="nav-item" data-tab="workers"><i class="fas fa-users"></i><span>Workers</span><span class="badge" id="workerBadge">0</span></button>
                 <button class="nav-item" data-tab="transactions"><i class="fas fa-receipt"></i><span>Transactions</span><span class="badge" id="transactionBadge">0</span></button>
+                <!-- NEW: Pending Payments -->
+                <button class="nav-item" data-tab="pending"><i class="fas fa-clock"></i><span>Pending Payments</span><span class="badge" id="pendingBadge">0</span></button>
             </nav>
         </div>
 
@@ -685,6 +699,12 @@
             <div id="transactionsTab" class="tab-content">
                 <div class="page-header"><h2><i class="fas fa-receipt"></i> Transaction History</h2></div>
                 <div id="transactionsList" class="transactions-list"></div>
+            </div>
+
+            <!-- NEW: Pending Payments -->
+            <div id="pendingTab" class="tab-content">
+                <div class="page-header"><h2><i class="fas fa-clock"></i> Pending Payments</h2></div>
+                <div id="pendingList" class="pending-list"></div>
             </div>
         </div>
     </div>
@@ -791,6 +811,7 @@
                 loadDashboard();
                 loadWorkers();
                 loadTransactions();
+                loadPending();
             } else {
                 loginScreen.style.display = 'flex';
                 dashboardScreen.style.display = 'none';
@@ -891,7 +912,6 @@
             container.innerHTML = workers.map(w => {
                 let imgSrc = null;
                 if (w.image) {
-                    // if it's a URL (http) or local path (/uploads/...)
                     if (w.image.startsWith('http://') || w.image.startsWith('https://')) {
                         imgSrc = w.image;
                     } else {
@@ -910,6 +930,7 @@
                                 <span><i class="fas fa-map-marker-alt" style="color:var(--primary);"></i> ${w.location}</span>
                                 <span><i class="fas fa-calendar-alt" style="color:var(--primary);"></i> ${w.experience} yrs</span>
                                 <span><i class="fas fa-tag" style="color:var(--primary);"></i> ${w.price} ETB</span>
+                                <span><i class="fas fa-phone" style="color:var(--primary);"></i> ${w.phone}</span>
                                 ${!w.isAvailable ? '<span class="unavailable"><i class="fas fa-times-circle"></i> Unavailable</span>' : ''}
                             </div>
                         </div>
@@ -943,7 +964,7 @@
                         <div class="transaction-item">
                             <div class="transaction-info">
                                 <div class="worker">${t.workerId?.name || 'Unknown'}</div>
-                                <div class="boss">${t.bossName} (${t.bossEmail})</div>
+                                <div class="boss">${t.bossName} (${t.bossPhone})</div>
                                 <span class="id">TXN: ${t.telebirrTransactionId}</span>
                                 <span class="status-badge ${t.status}">${t.status}</span>
                             </div>
@@ -952,6 +973,63 @@
                     `).join('');
                 }
             } catch (err) { console.error(err); }
+        }
+
+        // ===== LOAD PENDING =====
+        async function loadPending() {
+            try {
+                const data = await apiRequest(`${API_URL}/admin/transactions/pending`);
+                if (data.success) {
+                    const container = document.getElementById('pendingList');
+                    const pendings = data.data;
+                    document.getElementById('pendingBadge').textContent = pendings.length;
+                    if (!pendings.length) {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-check-circle"></i>
+                                <h3>No pending payments</h3>
+                                <p style="color:var(--gray-500);">All payments are confirmed</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    container.innerHTML = pendings.map(t => `
+                        <div class="pending-item" id="pending-${t._id}">
+                            <div class="transaction-info">
+                                <div class="worker">${t.workerId?.name || 'Unknown'} (${t.workerId?.profession || ''})</div>
+                                <div class="boss">${t.bossName} (${t.bossPhone})</div>
+                                <span class="id">TXN: ${t.telebirrTransactionId}</span>
+                                <span class="status-badge pending">Pending</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <span class="transaction-amount">${t.amount} ETB</span>
+                                <button class="btn-success" onclick="confirmPayment('${t._id}')"><i class="fas fa-check"></i> Confirm</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        // ===== CONFIRM PAYMENT =====
+        async function confirmPayment(transactionId) {
+            if (!confirm('Confirm this payment? The worker\'s phone number will be released to the customer.')) return;
+            try {
+                const data = await apiRequest(`${API_URL}/admin/transactions/${transactionId}/confirm`, {
+                    method: 'PUT'
+                });
+                if (data.success) {
+                    showToast('Payment confirmed! Phone number released.', 'success');
+                    loadPending();
+                    loadTransactions();
+                    loadDashboard();
+                } else {
+                    showToast(data.error || 'Error confirming payment', 'error');
+                }
+            } catch (err) {
+                showToast('Network error', 'error');
+                console.error(err);
+            }
         }
 
         // ===== EDIT WORKER =====
@@ -968,7 +1046,6 @@
             document.getElementById('workerPhone').value = w.phone;
             document.getElementById('workerDescription').value = w.description || '';
             document.getElementById('workerAvailable').checked = w.isAvailable;
-            // Show existing image preview
             if (w.image) {
                 let imgUrl = w.image;
                 if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
@@ -976,7 +1053,6 @@
                 }
                 imagePreview.innerHTML = `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
                 imagePreview.className = 'file-preview';
-                // set the URL input to the image URL if it's a full URL, otherwise leave empty
                 if (w.image.startsWith('http://') || w.image.startsWith('https://')) {
                     workerImageUrlInput.value = w.image;
                 } else {
@@ -1011,16 +1087,15 @@
             }
         }
 
-        // ===== IMAGE PREVIEW (file) =====
+        // ===== IMAGE PREVIEW =====
         workerImageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) {
-                // if no file, we keep whatever URL is set
                 updatePreviewFromUrl();
                 return;
             }
             currentImageFile = file;
-            currentImageUrl = ''; // file overrides URL
+            currentImageUrl = '';
             workerImageUrlInput.value = '';
             const reader = new FileReader();
             reader.onload = function(ev) {
@@ -1030,18 +1105,15 @@
             reader.readAsDataURL(file);
         });
 
-        // ===== IMAGE PREVIEW (URL) =====
         workerImageUrlInput.addEventListener('input', function() {
             const url = this.value.trim();
             currentImageUrl = url;
             if (url) {
-                // URL takes priority over file
                 currentImageFile = null;
-                workerImageInput.value = ''; // clear file input
+                workerImageInput.value = '';
                 imagePreview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
                 imagePreview.className = 'file-preview';
             } else {
-                // if URL is empty and no file, revert to placeholder
                 if (!currentImageFile) {
                     imagePreview.innerHTML = '<i class="fas fa-camera"></i>';
                     imagePreview.className = 'file-preview-placeholder';
@@ -1063,7 +1135,7 @@
             }
         }
 
-        // ===== ADD WORKER (open modal) =====
+        // ===== ADD WORKER =====
         addWorkerBtn.addEventListener('click', () => {
             modalTitle.innerHTML = '<i class="fas fa-user-plus"></i> Add Worker';
             workerForm.reset();
@@ -1079,7 +1151,7 @@
             document.body.style.overflow = 'hidden';
         });
 
-        // ===== SAVE WORKER (with image or URL) =====
+        // ===== SAVE WORKER =====
         workerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = workerId.value;
@@ -1093,7 +1165,6 @@
             formData.append('description', document.getElementById('workerDescription').value.trim());
             formData.append('isAvailable', document.getElementById('workerAvailable').checked ? 'true' : 'false');
 
-            // Handle image: file has priority, else use URL
             const url = workerImageUrlInput.value.trim();
             if (currentImageFile) {
                 formData.append('image', currentImageFile);
@@ -1135,6 +1206,7 @@
                 if (tab === 'workers') loadWorkers();
                 if (tab === 'transactions') loadTransactions();
                 if (tab === 'dashboard') loadDashboard();
+                if (tab === 'pending') loadPending();
             });
         });
 
@@ -1165,7 +1237,7 @@
             if (authToken) apiRequest(`${API_URL}/admin/stats`).catch(() => {});
         }, 5 * 60 * 1000);
 
-        console.log('🔐 Digital Delala Admin Panel (with Image Upload & URL)');
+        console.log('🔐 Digital Delala Admin Panel (with Payment Confirmation)');
     </script>
 </body>
 </html>
