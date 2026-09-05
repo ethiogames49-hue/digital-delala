@@ -113,6 +113,36 @@
             -webkit-text-fill-color: transparent;
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-purchases {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-purchases:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-purchases i {
+            font-size: 16px;
+        }
+
         /* ===== HERO ===== */
         .hero {
             background: linear-gradient(135deg, #EEF2FF, #E8EDFF);
@@ -545,7 +575,7 @@
 
         .modal-content {
             background: white;
-            max-width: 520px;
+            max-width: 600px;
             margin: 40px auto;
             padding: 32px;
             border-radius: var(--radius);
@@ -803,6 +833,43 @@
             font-size: 18px;
         }
 
+        /* ===== PURCHASES LIST ===== */
+        .purchase-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-200);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .purchase-item:last-child {
+            border-bottom: none;
+        }
+
+        .purchase-item .worker-name {
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .purchase-item .worker-prof {
+            color: var(--primary);
+            font-size: 14px;
+        }
+        .purchase-item .phone-number {
+            font-weight: 800;
+            color: var(--success);
+            font-size: 18px;
+            background: #D4EFDF;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        .purchase-item .status-pending {
+            color: var(--warning);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
         /* ===== TOAST ===== */
         .toast {
             position: fixed;
@@ -915,6 +982,16 @@
                 font-size: 22px;
                 padding: 6px;
             }
+
+            .btn-purchases span {
+                display: none;
+            }
+            .btn-purchases i {
+                font-size: 20px;
+            }
+            .btn-purchases {
+                padding: 8px 12px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -973,6 +1050,12 @@
             <div class="logo">
                 <i class="fas fa-briefcase"></i>
                 <span>Digital Delala</span>
+            </div>
+            <div class="header-actions">
+                <button id="purchasesBtn" class="btn-purchases">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>My Purchases</span>
+                </button>
             </div>
         </div>
     </header>
@@ -1115,6 +1198,20 @@
         </div>
     </div>
 
+    <!-- PURCHASES MODAL -->
+    <div id="purchasesModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-modal">&times;</span>
+            <h2 style="margin-bottom: 16px;"><i class="fas fa-shopping-bag" style="color: var(--primary);"></i> My Purchases</h2>
+            <div id="purchasesList">
+                <div class="loading-indicator" style="padding: 20px;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST -->
     <div id="toast" class="toast"></div>
 
@@ -1141,10 +1238,13 @@
         const loadingIndicator = document.getElementById('loadingIndicator');
         const workerModal = document.getElementById('workerModal');
         const paymentModal = document.getElementById('paymentModal');
+        const purchasesModal = document.getElementById('purchasesModal');
+        const purchasesList = document.getElementById('purchasesList');
         const workerDetailContent = document.getElementById('workerDetailContent');
         const paymentAmount = document.getElementById('paymentAmount');
         const paymentForm = document.getElementById('paymentForm');
         const toast = document.getElementById('toast');
+        const purchasesBtn = document.getElementById('purchasesBtn');
 
         let currentWorkerId = null;
         let allWorkers = [];
@@ -1163,16 +1263,13 @@
         function checkUser() {
             const userId = localStorage.getItem('userId');
             if (userId) {
-                // User already signed up, hide signup modal and show content
                 signupModal.style.display = 'none';
                 document.body.style.overflow = 'auto';
-                // Prefill payment form with stored user info
                 const userName = localStorage.getItem('userName');
                 const userPhone = localStorage.getItem('userPhone');
                 if (userName) bossNameDisplay.value = userName;
                 if (userPhone) bossPhoneDisplay.value = userPhone;
                 userIdField.value = userId;
-                // Load workers
                 fetchWorkers();
                 return true;
             } else {
@@ -1367,7 +1464,6 @@
             paymentModal.style.display = 'block';
             workerModal.style.display = 'none';
             paymentForm.reset();
-            // Ensure hidden userId is set
             const userId = localStorage.getItem('userId');
             if (userId) userIdField.value = userId;
         }
@@ -1403,7 +1499,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    showToast(`✅ Phone Number: ${data.data.phoneNumber}`, 'success');
+                    showToast('✅ Payment recorded. Waiting for admin confirmation.', 'success');
                     paymentModal.style.display = 'none';
                     setTimeout(() => {
                         workerModal.style.display = 'none';
@@ -1415,6 +1511,60 @@
             } catch (error) {
                 showToast('Network error. Please try again.', 'error');
                 console.error('Error:', error);
+            }
+        });
+
+        // ===== OPEN PURCHASES =====
+        purchasesBtn.addEventListener('click', async () => {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                showToast('Please sign up first', 'error');
+                return;
+            }
+            purchasesModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            purchasesList.innerHTML = `
+                <div class="loading-indicator" style="padding: 20px;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading...</p>
+                </div>
+            `;
+            try {
+                const response = await fetch(`${API_URL}/users/${userId}/transactions`);
+                const data = await response.json();
+                if (data.success) {
+                    const transactions = data.data;
+                    if (transactions.length === 0) {
+                        purchasesList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-shopping-bag"></i>
+                                <h3>No purchases yet</h3>
+                                <p>Pay for a worker's contact to see it here.</p>
+                            </div>
+                        `;
+                    } else {
+                        purchasesList.innerHTML = transactions.map(t => `
+                            <div class="purchase-item">
+                                <div>
+                                    <div class="worker-name">${t.workerId?.name || 'Unknown'}</div>
+                                    <div class="worker-prof">${t.workerId?.profession || ''}</div>
+                                    <div style="font-size: 13px; color: var(--gray-500);">Amount: ${t.amount} ETB</div>
+                                </div>
+                                <div>
+                                    ${t.status === 'completed' && t.phoneNumber ?
+                                        `<span class="phone-number"><i class="fas fa-phone"></i> ${t.phoneNumber}</span>` :
+                                        `<span class="status-pending"><i class="fas fa-clock"></i> Pending confirmation</span>`
+                                    }
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    purchasesList.innerHTML = `<p style="color: var(--danger);">Error loading purchases</p>`;
+                }
+            } catch (error) {
+                purchasesList.innerHTML = `<p style="color: var(--danger);">Network error</p>`;
+                console.error(error);
             }
         });
 
@@ -1465,6 +1615,10 @@
                 }
                 if (workerModal.style.display === 'block') {
                     workerModal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+                if (purchasesModal.style.display === 'block') {
+                    purchasesModal.style.display = 'none';
                     document.body.style.overflow = 'auto';
                 }
             }
