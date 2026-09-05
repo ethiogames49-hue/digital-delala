@@ -225,7 +225,7 @@
         .worker-name-wrap {
             display:flex;
             align-items:center;
-            gap:8px;
+            gap:6px;
             flex-wrap:wrap;
         }
         .worker-name {
@@ -233,13 +233,23 @@
             font-weight:700;
             line-height:1.2;
         }
+        /* ─── Small Green Dot ─── */
         .status-dot {
-            font-size:14px;
-            line-height:1;
             display:inline-block;
+            width:10px;
+            height:10px;
+            border-radius:50%;
+            flex-shrink:0;
+            transition:var(--transition);
         }
-        .status-dot.available { color:var(--success); }
-        .status-dot.unavailable { color:var(--danger); }
+        .status-dot.available {
+            background: var(--success);
+            box-shadow: 0 0 6px rgba(46,204,113,0.4);
+        }
+        .status-dot.unavailable {
+            background: var(--gray-400);
+            box-shadow: none;
+        }
         .worker-profession {
             color:var(--primary);
             font-weight:600;
@@ -282,7 +292,6 @@
             padding-top:10px;
             border-top:1px solid var(--gray-200);
         }
-        /* Full-width Call Now button */
         .call-btn {
             width:100%;
             background: linear-gradient(135deg, var(--success), #27AE60);
@@ -1058,10 +1067,8 @@
                 `<img src="${imgSrc}" alt="${worker.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;"><i class="fas fa-user"></i></div>` :
                 `<i class="fas fa-user"></i>`;
 
-            // Status dot: green check or red cross
-            const statusDot = worker.isAvailable 
-                ? `<span class="status-dot available" title="Available">✅</span>` 
-                : `<span class="status-dot unavailable" title="Unavailable">❌</span>`;
+            // Green dot: available = green, unavailable = gray
+            const dotClass = worker.isAvailable ? 'available' : 'unavailable';
 
             return `
                 <div class="worker-card">
@@ -1070,7 +1077,7 @@
                         <div>
                             <div class="worker-name-wrap">
                                 <span class="worker-name">${worker.name}</span>
-                                ${statusDot}
+                                <span class="status-dot ${dotClass}"></span>
                             </div>
                             <div class="worker-profession">${worker.profession}</div>
                             ${worker.rating > 0 ? `<div class="worker-rating"><i class="fas fa-star"></i> ${worker.rating.toFixed(1)} <span>(${Math.floor(worker.rating * 5)} reviews)</span></div>` : ''}
@@ -1307,7 +1314,7 @@
         }
     });
 
-    console.log('🚀 Digital Delala - Compact Cards with Full-Width Call Now & Status Dots');
+    console.log('🚀 Digital Delala - Green Dot Status');
 </script>
 </body>
 </html>
