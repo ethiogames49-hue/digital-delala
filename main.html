@@ -171,7 +171,7 @@
             border:1px solid var(--gray-200);
         }
 
-        /* ─── Workers Grid (Compact Cards) ─── */
+        /* ─── Workers Grid ─── */
         .workers-grid {
             display:grid;
             grid-template-columns:repeat(auto-fill, minmax(250px,1fr));
@@ -184,10 +184,9 @@
             padding:16px;
             box-shadow:var(--shadow-sm);
             transition:var(--transition);
-            cursor:pointer;
             border:1px solid rgba(255,255,255,0.6);
-            position:relative;
-            overflow:hidden;
+            display:flex;
+            flex-direction:column;
         }
         .worker-card:hover {
             transform:translateY(-4px);
@@ -223,11 +222,24 @@
             font-size:24px;
             color:white;
         }
+        .worker-name-wrap {
+            display:flex;
+            align-items:center;
+            gap:8px;
+            flex-wrap:wrap;
+        }
         .worker-name {
             font-size:16px;
             font-weight:700;
             line-height:1.2;
         }
+        .status-dot {
+            font-size:14px;
+            line-height:1;
+            display:inline-block;
+        }
+        .status-dot.available { color:var(--success); }
+        .status-dot.unavailable { color:var(--danger); }
         .worker-profession {
             color:var(--primary);
             font-weight:600;
@@ -263,55 +275,36 @@
             -webkit-box-orient:vertical;
             overflow:hidden;
             line-height:1.5;
+            flex:1;
         }
         .worker-bottom {
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            margin-top:6px;
+            margin-top:auto;
             padding-top:10px;
             border-top:1px solid var(--gray-200);
         }
-        /* Removed price display from card */
-        .worker-status {
-            padding:3px 12px;
-            border-radius:50px;
-            font-size:10px;
-            font-weight:700;
-            letter-spacing:0.2px;
-            text-transform:uppercase;
-            backdrop-filter: blur(4px);
-        }
-        .worker-status.available { 
-            background: linear-gradient(135deg, #D4EFDF, #A9DFBF); 
-            color: #1A7A4A; 
-            border:1px solid rgba(26,122,74,0.2);
-        }
-        .worker-status.unavailable { 
-            background: linear-gradient(135deg, #FADBD8, #F5B7B1); 
-            color: #922B21; 
-            border:1px solid rgba(146,43,33,0.2);
-        }
+        /* Full-width Call Now button */
         .call-btn {
+            width:100%;
             background: linear-gradient(135deg, var(--success), #27AE60);
             color: white;
             border: none;
-            padding:4px 14px;
-            border-radius:50px;
-            font-size:12px;
+            padding:8px 0;
+            border-radius:var(--radius-sm);
+            font-size:14px;
             font-weight:700;
             cursor:pointer;
             transition:var(--transition);
             display:flex;
             align-items:center;
-            gap:6px;
+            justify-content:center;
+            gap:8px;
             box-shadow:0 2px 8px rgba(46,204,113,0.2);
         }
         .call-btn:hover {
-            transform:scale(1.05);
+            transform:scale(1.02);
             box-shadow:0 4px 16px rgba(46,204,113,0.3);
         }
-        .call-btn i { font-size:14px; }
+        .call-btn i { font-size:16px; }
 
         /* ─── Skeleton ─── */
         .skeleton {
@@ -786,8 +779,6 @@
             detail_experience: 'Experience',
             detail_price: 'Price',
             detail_status: 'Status',
-            status_available: 'Available',
-            status_unavailable: 'Unavailable',
             get_phone: 'Get Phone Number',
             not_available: 'Not Available',
             phone_label: 'Phone Number',
@@ -830,8 +821,6 @@
             detail_experience: 'ልምድ',
             detail_price: 'ዋጋ',
             detail_status: 'ሁኔታ',
-            status_available: 'ይገኛል',
-            status_unavailable: 'አይገኝም',
             get_phone: 'ስልክ ቁጥር ያግኙ',
             not_available: 'አይገኝም',
             phone_label: 'ስልክ ቁጥር',
@@ -1069,15 +1058,20 @@
                 `<img src="${imgSrc}" alt="${worker.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;"><i class="fas fa-user"></i></div>` :
                 `<i class="fas fa-user"></i>`;
 
-            const statusText = worker.isAvailable ? translate('status_available') : translate('status_unavailable');
-            const statusClass = worker.isAvailable ? 'available' : 'unavailable';
+            // Status dot: green check or red cross
+            const statusDot = worker.isAvailable 
+                ? `<span class="status-dot available" title="Available">✅</span>` 
+                : `<span class="status-dot unavailable" title="Unavailable">❌</span>`;
 
             return `
                 <div class="worker-card">
                     <div class="worker-card-top">
                         <div class="worker-avatar">${avatarHtml}</div>
                         <div>
-                            <div class="worker-name">${worker.name}</div>
+                            <div class="worker-name-wrap">
+                                <span class="worker-name">${worker.name}</span>
+                                ${statusDot}
+                            </div>
                             <div class="worker-profession">${worker.profession}</div>
                             ${worker.rating > 0 ? `<div class="worker-rating"><i class="fas fa-star"></i> ${worker.rating.toFixed(1)} <span>(${Math.floor(worker.rating * 5)} reviews)</span></div>` : ''}
                         </div>
@@ -1088,11 +1082,7 @@
                     </div>
                     ${worker.description ? `<div class="worker-description">${worker.description.substring(0, 70)}${worker.description.length > 70 ? '...' : ''}</div>` : ''}
                     <div class="worker-bottom">
-                        <span class="worker-status ${statusClass}">
-                            <i class="fas ${worker.isAvailable ? 'fa-check-circle' : 'fa-times-circle'}"></i>
-                            ${statusText}
-                        </span>
-                        <button class="call-btn" onclick="event.stopPropagation(); openWorkerDetail('${worker._id}')">
+                        <button class="call-btn" onclick="openWorkerDetail('${worker._id}')">
                             <i class="fas fa-phone"></i> Call Now
                         </button>
                     </div>
@@ -1317,7 +1307,7 @@
         }
     });
 
-    console.log('🚀 Digital Delala - Compact Cards with Call Now');
+    console.log('🚀 Digital Delala - Compact Cards with Full-Width Call Now & Status Dots');
 </script>
 </body>
 </html>
