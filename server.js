@@ -28,7 +28,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|gif|webp/;
     const isValid = allowed.test(path.extname(file.originalname).toLowerCase()) &&
@@ -41,10 +41,7 @@ const upload = multer({
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100
-});
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api/', limiter);
 
 // Middleware
@@ -53,13 +50,9 @@ app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
-// Serve HTML files
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'main.html'));
-});
-app.get('/admin.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
-});
+// Serve HTML
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'main.html')));
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
 // MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -93,12 +86,12 @@ const User = mongoose.model('User', userSchema);
 const transactionSchema = new mongoose.Schema({
   workerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Worker', required: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  bossName: { type: String, required: true },   // Denormalized from user
-  bossPhone: { type: String, required: true }, // Denormalized from user
+  bossName: { type: String, required: true },
+  bossPhone: { type: String, required: true },
   amount: { type: Number, required: true },
   telebirrTransactionId: { type: String, required: true, unique: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
-  phoneNumber: { type: String }, // Worker's phone (unlocked)
+  phoneNumber: { type: String }, // worker's phone (unlocked)
   createdAt: { type: Date, default: Date.now }
 });
 const Transaction = mongoose.model('Transaction', transactionSchema);
@@ -171,10 +164,8 @@ app.post('/api/users', async (req, res) => {
     if (!name || !phone) {
       return res.status(400).json({ error: 'Name and phone are required' });
     }
-    // Check if user already exists by phone
     let user = await User.findOne({ phone });
     if (user) {
-      // Update name if changed
       user.name = name;
       await user.save();
       return res.json({ success: true, data: { userId: user._id, name: user.name, phone: user.phone } });
@@ -187,7 +178,7 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// Unlock worker phone number (requires user)
+// Unlock phone: creates a pending transaction
 app.post('/api/workers/:id/phone', async (req, res) => {
   try {
     const { telebirrTransactionId, userId, amount } = req.body;
@@ -209,20 +200,37 @@ app.post('/api/workers/:id/phone', async (req, res) => {
       bossPhone: user.phone,
       amount,
       telebirrTransactionId,
-      status: 'pending',
-      phoneNumber: worker.phone
+      status: 'pending', // starts as pending
+      phoneNumber: worker.phone // store the worker's phone (will be revealed only when confirmed)
     });
-    await transaction.save();
-
-    // Demo: auto-complete (in production you would verify with Telebirr)
-    transaction.status = 'completed';
     await transaction.save();
 
     res.json({
       success: true,
-      message: 'Payment verified successfully',
-      data: { phoneNumber: worker.phone, workerName: worker.name }
+      message: 'Payment recorded. Waiting for admin confirmation.',
+      data: { transactionId: transaction._id }
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user's transactions (with phone number only if completed)
+app.get('/api/users/:userId/transactions', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const transactions = await Transaction.find({ userId })
+      .populate('workerId', 'name profession')
+      .sort({ createdAt: -1 });
+    // Mask phone number if not completed
+    const data = transactions.map(t => {
+      const obj = t.toObject();
+      if (t.status !== 'completed') {
+        obj.phoneNumber = null; // don't reveal
+      }
+      return obj;
+    });
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -248,13 +256,41 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Create worker (admin)
+// Get all pending transactions (admin)
+app.get('/api/admin/transactions/pending', authenticateToken, async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ status: 'pending' })
+      .populate('workerId', 'name profession phone')
+      .populate('userId', 'name phone')
+      .sort({ createdAt: 1 });
+    res.json({ success: true, data: transactions });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Confirm a pending transaction (admin)
+app.put('/api/admin/transactions/:id/confirm', authenticateToken, async (req, res) => {
+  try {
+    const transaction = await Transaction.findById(req.params.id);
+    if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
+    if (transaction.status !== 'pending') {
+      return res.status(400).json({ error: 'Transaction already processed' });
+    }
+    transaction.status = 'completed';
+    await transaction.save();
+    res.json({ success: true, message: 'Payment confirmed, phone number released.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create worker (admin) – already includes phone
 app.post('/api/admin/workers', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const workerData = { ...req.body };
-    if (req.file) {
-      workerData.image = req.file.filename;
-    } else if (req.body.imageUrl && req.body.imageUrl.trim() !== '') {
+    if (req.file) workerData.image = req.file.filename;
+    else if (req.body.imageUrl && req.body.imageUrl.trim() !== '') {
       workerData.image = req.body.imageUrl.trim();
     }
     if (workerData.isAvailable === 'true') workerData.isAvailable = true;
@@ -328,7 +364,7 @@ app.delete('/api/admin/workers/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Get transactions (admin) – now populates userId
+// Get all transactions (admin) – used for dashboard
 app.get('/api/admin/transactions', authenticateToken, async (req, res) => {
   try {
     const transactions = await Transaction.find()
@@ -341,7 +377,7 @@ app.get('/api/admin/transactions', authenticateToken, async (req, res) => {
   }
 });
 
-// Get stats (admin)
+// Stats (admin)
 app.get('/api/admin/stats', authenticateToken, async (req, res) => {
   try {
     const totalWorkers = await Worker.countDocuments();
