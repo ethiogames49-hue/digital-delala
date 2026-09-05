@@ -402,8 +402,38 @@
             flex-wrap:wrap;
         }
         .worker-info .details span { display:flex; align-items:center; gap:3px; }
-        .worker-info .details .unavailable { color:var(--danger); }
-        .worker-actions { display:flex; gap:6px; }
+        .worker-actions { display:flex; gap:6px; align-items:center; }
+
+        /* ─── Availability Toggle ─── */
+        .toggle-wrap {
+            display:flex;
+            align-items:center;
+            gap:6px;
+            cursor:pointer;
+            user-select:none;
+            padding:4px 10px 4px 6px;
+            border-radius:50px;
+            background:var(--gray-100);
+            transition:var(--transition);
+            border:1px solid transparent;
+        }
+        .toggle-wrap:hover { background:var(--gray-200); }
+        .toggle-dot {
+            width:12px;
+            height:12px;
+            border-radius:50%;
+            display:inline-block;
+            transition:var(--transition);
+            flex-shrink:0;
+        }
+        .toggle-dot.on { background:var(--success); box-shadow:0 0 8px rgba(46,204,113,0.3); }
+        .toggle-dot.off { background:var(--gray-400); }
+        .toggle-label {
+            font-size:11px;
+            font-weight:600;
+            color:var(--gray-600);
+            letter-spacing:0.3px;
+        }
 
         .transaction-item, .pending-item {
             background:white;
@@ -668,7 +698,6 @@
                 <button class="nav-item active" data-tab="dashboard"><i class="fas fa-chart-pie"></i><span>Dashboard</span></button>
                 <button class="nav-item" data-tab="workers"><i class="fas fa-users"></i><span>Workers</span><span class="badge" id="workerBadge">0</span></button>
                 <button class="nav-item" data-tab="transactions"><i class="fas fa-receipt"></i><span>Transactions</span><span class="badge" id="transactionBadge">0</span></button>
-                <!-- NEW: Pending Payments -->
                 <button class="nav-item" data-tab="pending"><i class="fas fa-clock"></i><span>Pending Payments</span><span class="badge" id="pendingBadge">0</span></button>
             </nav>
         </div>
@@ -701,7 +730,7 @@
                 <div id="transactionsList" class="transactions-list"></div>
             </div>
 
-            <!-- NEW: Pending Payments -->
+            <!-- Pending Payments -->
             <div id="pendingTab" class="tab-content">
                 <div class="page-header"><h2><i class="fas fa-clock"></i> Pending Payments</h2></div>
                 <div id="pendingList" class="pending-list"></div>
@@ -896,7 +925,28 @@
             } catch (err) { console.error(err); }
         }
 
-        // ===== RENDER WORKERS =====
+        // ===== TOGGLE AVAILABILITY =====
+        async function toggleAvailability(workerId, currentStatus) {
+            const newStatus = !currentStatus;
+            try {
+                const data = await apiRequest(`${API_URL}/admin/workers/${workerId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ isAvailable: newStatus })
+                });
+                if (data.success) {
+                    showToast(`Worker ${newStatus ? 'available' : 'unavailable'}`, 'success');
+                    loadWorkers();
+                    loadDashboard();
+                } else {
+                    showToast(data.error || 'Error updating availability', 'error');
+                }
+            } catch (err) {
+                showToast('Network error', 'error');
+                console.error(err);
+            }
+        }
+
+        // ===== RENDER WORKERS (with toggle) =====
         function renderWorkers(workers) {
             const container = document.getElementById('workersList');
             if (!workers.length) {
@@ -918,6 +968,8 @@
                         imgSrc = `/uploads/${w.image}`;
                     }
                 }
+                const dotClass = w.isAvailable ? 'on' : 'off';
+                const label = w.isAvailable ? 'Available' : 'Unavailable';
                 return `
                 <div class="worker-item">
                     <div class="worker-item-left">
@@ -931,11 +983,15 @@
                                 <span><i class="fas fa-calendar-alt" style="color:var(--primary);"></i> ${w.experience} yrs</span>
                                 <span><i class="fas fa-tag" style="color:var(--primary);"></i> ${w.price} ETB</span>
                                 <span><i class="fas fa-phone" style="color:var(--primary);"></i> ${w.phone}</span>
-                                ${!w.isAvailable ? '<span class="unavailable"><i class="fas fa-times-circle"></i> Unavailable</span>' : ''}
                             </div>
                         </div>
                     </div>
                     <div class="worker-actions">
+                        <!-- Availability Toggle -->
+                        <div class="toggle-wrap" onclick="toggleAvailability('${w._id}', ${w.isAvailable})" title="Click to toggle availability">
+                            <span class="toggle-dot ${dotClass}"></span>
+                            <span class="toggle-label">${label}</span>
+                        </div>
                         <button class="btn-edit" onclick="editWorker('${w._id}')"><i class="fas fa-edit"></i> Edit</button>
                         <button class="btn-danger" onclick="deleteWorker('${w._id}')"><i class="fas fa-trash"></i> Delete</button>
                     </div>
@@ -1237,7 +1293,7 @@
             if (authToken) apiRequest(`${API_URL}/admin/stats`).catch(() => {});
         }, 5 * 60 * 1000);
 
-        console.log('🔐 Digital Delala Admin Panel (with Payment Confirmation)');
+        console.log('🔐 Digital Delala Admin Panel (with Availability Toggle)');
     </script>
 </body>
 </html>
