@@ -773,7 +773,7 @@
             font-size: 18px;
         }
 
-        /* Payment Modal */
+        /* Payment Modal - enhanced Telebirr display */
         .payment-modal .modal-title {
             text-align: center;
             font-size: 24px;
@@ -814,6 +814,48 @@
             color: var(--gray-600);
         }
 
+        /* Telebirr instructions box */
+        .telebirr-instructions {
+            background: #FFF8E1;
+            border: 2px solid #FFC107;
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .telebirr-instructions .title {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+
+        .telebirr-instructions .number {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--primary-dark);
+            letter-spacing: 2px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: var(--radius-xs);
+            display: inline-block;
+            margin: 6px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .telebirr-instructions .number i {
+            color: #FFC107;
+            margin-right: 8px;
+        }
+
+        .telebirr-instructions .instruction {
+            font-size: 14px;
+            color: var(--gray-600);
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
         .form-group {
             margin-bottom: 16px;
         }
@@ -847,10 +889,6 @@
             margin-top: 4px;
             font-size: 13px;
             color: var(--gray-500);
-        }
-
-        .form-group .hint strong {
-            color: var(--primary);
         }
 
         .btn-pay {
@@ -996,6 +1034,11 @@
                 font-size: 12px;
                 padding: 6px 12px;
             }
+
+            .telebirr-instructions .number {
+                font-size: 26px;
+                padding: 6px 12px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1043,6 +1086,11 @@
                 padding: 12px 20px;
                 font-size: 14px;
                 bottom: 16px;
+            }
+
+            .telebirr-instructions .number {
+                font-size: 22px;
+                padding: 4px 10px;
             }
         }
     </style>
@@ -1177,12 +1225,23 @@
                     <span class="label" data-i18n="amount_label">Amount to Pay</span>
                     <span class="amount" id="paymentAmount">0 <small>ETB</small></span>
                 </div>
+
+                <!-- Enhanced Telebirr instructions -->
+                <div class="telebirr-instructions">
+                    <div class="title" data-i18n="telebirr_instruction_title">📲 Pay via Telebirr</div>
+                    <div class="number">
+                        <i class="fas fa-phone"></i> 0962577855
+                    </div>
+                    <div class="instruction" data-i18n="telebirr_instruction_text">
+                        Send the exact amount shown above to this Telebirr number, then enter the transaction ID below to get the worker's phone number.
+                    </div>
+                </div>
+
                 <form id="paymentForm">
                     <input type="hidden" id="userId" />
                     <div class="form-group">
                         <label for="telebirrId" data-i18n="telebirr_label">Telebirr Transaction ID</label>
                         <input type="text" id="telebirrId" data-i18n-placeholder="telebirr_ph" placeholder="Enter Telebirr transaction ID" required>
-                        <span class="hint" data-i18n="telebirr_hint">Send payment to: <strong>0912345678</strong> (Demo Telebirr)</span>
                     </div>
                     <button type="submit" class="btn-pay" data-i18n="pay_btn">
                         <i class="fas fa-check-circle"></i> Verify & Get Number
@@ -1239,7 +1298,8 @@
                 amount_label: 'Amount to Pay',
                 telebirr_label: 'Telebirr Transaction ID',
                 telebirr_ph: 'Enter Telebirr transaction ID',
-                telebirr_hint: 'Send payment to: <strong>0912345678</strong> (Demo Telebirr)',
+                telebirr_instruction_title: '📲 Pay via Telebirr',
+                telebirr_instruction_text: 'Send the exact amount shown above to this Telebirr number, then enter the transaction ID below to get the worker\'s phone number.',
                 pay_btn: 'Verify & Get Number',
                 // Toast messages
                 toast_welcome: 'Welcome, {name}!',
@@ -1293,7 +1353,8 @@
                 amount_label: 'የሚከፈል ገንዘብ',
                 telebirr_label: 'የቴሌብር ግብይት መታወቂያ',
                 telebirr_ph: 'የቴሌብር ግብይት መታወቂያ ያስገቡ',
-                telebirr_hint: 'ክፍያ ይላኩለት: <strong>0912345678</strong> (ሙከራ ቴሌብር)',
+                telebirr_instruction_title: '📲 በቴሌብር ይክፈሉ',
+                telebirr_instruction_text: 'ከላይ የተመለከተውን ትክክለኛ ገንዘብ ለዚህ ቴሌብር ቁጥር ይላኩ፣ ከዚያ የሰራተኛውን ስልክ ቁጥር ለማግኘት ከታች ያለውን የግብይት መታወቂያ ያስገቡ።',
                 pay_btn: 'አረጋግጥ እና ቁጥር አግኝ',
                 // Toast messages
                 toast_welcome: 'እንኳን ደህና መጡ፣ {name}!',
@@ -1507,7 +1568,7 @@
                     </div>
                 `;
                 workerCount.textContent = `0 ${translate('workers_found')}`;
-                applyTranslations(); // re-apply after dynamic HTML
+                applyTranslations();
                 return;
             }
 
@@ -1550,7 +1611,6 @@
             }).join('');
 
             workerCount.textContent = `${workers.length} ${translate('workers_found')}`;
-            // Re-apply translations for dynamic empty state or any embedded data-i18n (if any)
         }
 
         // ===== FETCH USER TRANSACTIONS =====
