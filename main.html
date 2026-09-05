@@ -760,6 +760,12 @@
             box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.08);
         }
 
+        .form-group input[readonly] {
+            background: var(--gray-100);
+            cursor: default;
+            color: var(--gray-600);
+        }
+
         .form-group .hint {
             display: block;
             margin-top: 4px;
@@ -968,7 +974,6 @@
                 <i class="fas fa-briefcase"></i>
                 <span>Digital Delala</span>
             </div>
-            <!-- Admin link removed -->
         </div>
     </header>
 
@@ -1043,6 +1048,31 @@
         </div>
     </section>
 
+    <!-- SIGNUP MODAL -->
+    <div id="signupModal" class="modal" style="display: flex; background: rgba(0,0,0,0.6);">
+        <div class="modal-content" style="max-width: 400px; margin: auto;">
+            <h2 style="text-align: center; margin-bottom: 12px;">
+                <i class="fas fa-user-plus" style="color: var(--primary);"></i> Join Digital Delala
+            </h2>
+            <p style="text-align: center; color: var(--gray-500); margin-bottom: 20px;">
+                Enter your name and phone number to continue
+            </p>
+            <form id="signupForm">
+                <div class="form-group">
+                    <label for="signupName">Full Name</label>
+                    <input type="text" id="signupName" placeholder="e.g., Abebe Kebede" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupPhone">Phone Number</label>
+                    <input type="tel" id="signupPhone" placeholder="09XXXXXXXX" required>
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 8px;">
+                    <i class="fas fa-arrow-right"></i> Continue
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- WORKER DETAIL MODAL -->
     <div id="workerModal" class="modal">
         <div class="modal-content">
@@ -1063,13 +1093,14 @@
                     <span class="amount" id="paymentAmount">0 <small>ETB</small></span>
                 </div>
                 <form id="paymentForm">
+                    <input type="hidden" id="userId" />
                     <div class="form-group">
-                        <label for="bossName">Your Full Name</label>
-                        <input type="text" id="bossName" placeholder="e.g., Abebe Kebede" required>
+                        <label for="bossNameDisplay">Your Name</label>
+                        <input type="text" id="bossNameDisplay" readonly style="background: var(--gray-100); cursor: default;" />
                     </div>
                     <div class="form-group">
-                        <label for="bossEmail">Your Email</label>
-                        <input type="email" id="bossEmail" placeholder="you@example.com" required>
+                        <label for="bossPhoneDisplay">Your Phone</label>
+                        <input type="text" id="bossPhoneDisplay" readonly style="background: var(--gray-100); cursor: default;" />
                     </div>
                     <div class="form-group">
                         <label for="telebirrId">Telebirr Transaction ID</label>
@@ -1092,6 +1123,13 @@
         const API_URL = window.location.origin + '/api';
 
         // ===== DOM REFS =====
+        const signupModal = document.getElementById('signupModal');
+        const signupForm = document.getElementById('signupForm');
+        const signupName = document.getElementById('signupName');
+        const signupPhone = document.getElementById('signupPhone');
+        const userIdField = document.getElementById('userId');
+        const bossNameDisplay = document.getElementById('bossNameDisplay');
+        const bossPhoneDisplay = document.getElementById('bossPhoneDisplay');
         const workersGrid = document.getElementById('workersGrid');
         const searchInput = document.getElementById('searchInput');
         const professionFilter = document.getElementById('professionFilter');
@@ -1120,6 +1158,68 @@
                 toast.className = 'toast';
             }, 3500);
         }
+
+        // ===== CHECK USER =====
+        function checkUser() {
+            const userId = localStorage.getItem('userId');
+            if (userId) {
+                // User already signed up, hide signup modal and show content
+                signupModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                // Prefill payment form with stored user info
+                const userName = localStorage.getItem('userName');
+                const userPhone = localStorage.getItem('userPhone');
+                if (userName) bossNameDisplay.value = userName;
+                if (userPhone) bossPhoneDisplay.value = userPhone;
+                userIdField.value = userId;
+                // Load workers
+                fetchWorkers();
+                return true;
+            } else {
+                signupModal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                return false;
+            }
+        }
+
+        // ===== SIGNUP =====
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = signupName.value.trim();
+            const phone = signupPhone.value.trim();
+
+            if (!name || !phone) {
+                showToast('Please fill in name and phone', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/users`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phone })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const { userId, name, phone } = data.data;
+                    localStorage.setItem('userId', userId);
+                    localStorage.setItem('userName', name);
+                    localStorage.setItem('userPhone', phone);
+                    showToast('Welcome, ' + name + '!', 'success');
+                    signupModal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                    bossNameDisplay.value = name;
+                    bossPhoneDisplay.value = phone;
+                    userIdField.value = userId;
+                    fetchWorkers();
+                } else {
+                    showToast(data.error || 'Signup failed', 'error');
+                }
+            } catch (error) {
+                showToast('Network error. Please try again.', 'error');
+                console.error(error);
+            }
+        });
 
         // ===== FETCH WORKERS =====
         async function fetchWorkers() {
@@ -1267,33 +1367,36 @@
             paymentModal.style.display = 'block';
             workerModal.style.display = 'none';
             paymentForm.reset();
+            // Ensure hidden userId is set
+            const userId = localStorage.getItem('userId');
+            if (userId) userIdField.value = userId;
         }
 
         // ===== HANDLE PAYMENT =====
         paymentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const bossName = document.getElementById('bossName').value.trim();
-            const bossEmail = document.getElementById('bossEmail').value.trim();
+            const userId = userIdField.value;
             const telebirrId = document.getElementById('telebirrId').value.trim();
+            const amount = parseInt(paymentAmount.textContent.replace(/[^0-9]/g, ''));
 
-            if (!bossName || !bossEmail || !telebirrId) {
-                showToast('Please fill all fields', 'error');
+            if (!userId) {
+                showToast('User not logged in. Please reload.', 'error');
                 return;
             }
-
-            const priceText = paymentAmount.textContent;
-            const amount = parseInt(priceText.replace(/[^0-9]/g, ''));
+            if (!telebirrId) {
+                showToast('Please enter your Telebirr transaction ID', 'error');
+                return;
+            }
 
             try {
                 const response = await fetch(`${API_URL}/workers/${currentWorkerId}/phone`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        bossName,
-                        bossEmail,
+                        userId,
                         telebirrTransactionId: telebirrId,
-                        amount: amount
+                        amount
                     })
                 });
 
@@ -1349,7 +1452,9 @@
         applyFiltersBtn.addEventListener('click', fetchWorkers);
 
         // ===== INIT =====
-        document.addEventListener('DOMContentLoaded', fetchWorkers);
+        document.addEventListener('DOMContentLoaded', () => {
+            checkUser();
+        });
 
         // Close modals with Escape key
         document.addEventListener('keydown', (e) => {
