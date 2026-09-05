@@ -113,6 +113,30 @@
             -webkit-text-fill-color: transparent;
         }
 
+        .lang-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lang-btn:hover {
+            background: rgba(255,255,255,0.35);
+            transform: scale(1.05);
+        }
+
+        .lang-btn i {
+            font-size: 16px;
+        }
+
         /* ===== HERO ===== */
         .hero {
             background: linear-gradient(135deg, #EEF2FF, #E8EDFF);
@@ -967,6 +991,11 @@
                 font-size: 22px;
                 padding: 6px;
             }
+
+            .lang-btn {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1024,22 +1053,26 @@
         <div class="header-content">
             <div class="logo">
                 <i class="fas fa-briefcase"></i>
-                <span>Digital Delala</span>
+                <span data-i18n="app_name">Digital Delala</span>
             </div>
+            <button id="langToggle" class="lang-btn">
+                <i class="fas fa-language"></i>
+                <span id="langLabel">አማርኛ</span>
+            </button>
         </div>
     </header>
 
     <!-- HERO -->
     <section class="hero">
         <div class="hero-content">
-            <div class="hero-badge">
+            <div class="hero-badge" data-i18n="hero_badge">
                 <i class="fas fa-rocket"></i> Find Workers Instantly
             </div>
-            <h1>Connect with <span class="highlight">Skilled Professionals</span></h1>
-            <p>Search, connect, and hire the best workers in your area</p>
+            <h1 data-i18n="hero_title">Connect with <span class="highlight">Skilled Professionals</span></h1>
+            <p data-i18n="hero_sub">Search, connect, and hire the best workers in your area</p>
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Search by name, profession, or location...">
+                <input type="text" id="searchInput" data-i18n-placeholder="search_placeholder" placeholder="Search by name, profession, or location...">
             </div>
         </div>
     </section>
@@ -1049,7 +1082,7 @@
         <div class="filter-row">
             <div class="filter-group">
                 <select id="professionFilter">
-                    <option value="">All Professions</option>
+                    <option value="" data-i18n="filter_all_professions">All Professions</option>
                     <option value="plumber">Plumber</option>
                     <option value="electrician">Electrician</option>
                     <option value="carpenter">Carpenter</option>
@@ -1064,7 +1097,7 @@
                     <option value="security">Security Guard</option>
                 </select>
                 <select id="locationFilter">
-                    <option value="">All Locations</option>
+                    <option value="" data-i18n="filter_all_locations">All Locations</option>
                     <option value="addis ababa">Addis Ababa</option>
                     <option value="bahir dar">Bahir Dar</option>
                     <option value="gondar">Gondar</option>
@@ -1076,9 +1109,9 @@
                 </select>
             </div>
             <div class="filter-group" style="flex: 0.7;">
-                <input type="number" id="minPrice" placeholder="Min Price" class="price-input">
-                <input type="number" id="maxPrice" placeholder="Max Price" class="price-input">
-                <button id="applyFiltersBtn" class="btn-filter">
+                <input type="number" id="minPrice" data-i18n-placeholder="filter_min_price" placeholder="Min Price" class="price-input">
+                <input type="number" id="maxPrice" data-i18n-placeholder="filter_max_price" placeholder="Max Price" class="price-input">
+                <button id="applyFiltersBtn" class="btn-filter" data-i18n="filter_apply">
                     <i class="fas fa-sliders-h"></i> Apply
                 </button>
             </div>
@@ -1088,7 +1121,7 @@
     <!-- WORKERS -->
     <section class="workers-section">
         <div class="section-header">
-            <h2><i class="fas fa-users"></i> Available Workers</h2>
+            <h2 data-i18n="section_title"><i class="fas fa-users"></i> Available Workers</h2>
             <span id="workerCount">0 workers found</span>
         </div>
         <div id="workersGrid" class="workers-grid">
@@ -1096,7 +1129,7 @@
         </div>
         <div id="loadingIndicator" class="loading-indicator" style="display: none;">
             <i class="fas fa-spinner fa-spin"></i>
-            <p>Loading workers...</p>
+            <p data-i18n="loading_workers">Loading workers...</p>
         </div>
     </section>
 
@@ -1104,21 +1137,21 @@
     <div id="signupModal" class="modal" style="display: flex; background: rgba(0,0,0,0.6);">
         <div class="modal-content" style="max-width: 400px; margin: auto;">
             <h2 style="text-align: center; margin-bottom: 12px;">
-                <i class="fas fa-user-plus" style="color: var(--primary);"></i> Join Digital Delala
+                <i class="fas fa-user-plus" style="color: var(--primary);"></i> <span data-i18n="signup_title">Join Digital Delala</span>
             </h2>
-            <p style="text-align: center; color: var(--gray-500); margin-bottom: 20px;">
+            <p style="text-align: center; color: var(--gray-500); margin-bottom: 20px;" data-i18n="signup_sub">
                 Enter your name and phone number to continue
             </p>
             <form id="signupForm">
                 <div class="form-group">
-                    <label for="signupName">Full Name</label>
-                    <input type="text" id="signupName" placeholder="e.g., Abebe Kebede" required>
+                    <label for="signupName" data-i18n="signup_name">Full Name</label>
+                    <input type="text" id="signupName" data-i18n-placeholder="signup_name_ph" placeholder="e.g., Abebe Kebede" required>
                 </div>
                 <div class="form-group">
-                    <label for="signupPhone">Phone Number</label>
-                    <input type="tel" id="signupPhone" placeholder="09XXXXXXXX" required>
+                    <label for="signupPhone" data-i18n="signup_phone">Phone Number</label>
+                    <input type="tel" id="signupPhone" data-i18n-placeholder="signup_phone_ph" placeholder="09XXXXXXXX" required>
                 </div>
-                <button type="submit" class="btn-primary" style="margin-top: 8px;">
+                <button type="submit" class="btn-primary" style="margin-top: 8px;" data-i18n="signup_continue">
                     <i class="fas fa-arrow-right"></i> Continue
                 </button>
             </form>
@@ -1137,21 +1170,21 @@
     <div id="paymentModal" class="modal">
         <div class="modal-content payment-modal">
             <span class="close-modal">&times;</span>
-            <h2 class="modal-title"><i class="fas fa-phone" style="color: var(--primary);"></i> Unlock Phone Number</h2>
-            <p class="modal-subtitle">Pay a small fee to get the worker's contact</p>
+            <h2 class="modal-title" data-i18n="payment_title"><i class="fas fa-phone" style="color: var(--primary);"></i> Unlock Phone Number</h2>
+            <p class="modal-subtitle" data-i18n="payment_sub">Pay a small fee to get the worker's contact</p>
             <div id="paymentContent">
                 <div class="payment-info-box">
-                    <span class="label">Amount to Pay</span>
+                    <span class="label" data-i18n="amount_label">Amount to Pay</span>
                     <span class="amount" id="paymentAmount">0 <small>ETB</small></span>
                 </div>
                 <form id="paymentForm">
                     <input type="hidden" id="userId" />
                     <div class="form-group">
-                        <label for="telebirrId">Telebirr Transaction ID</label>
-                        <input type="text" id="telebirrId" placeholder="Enter Telebirr transaction ID" required>
-                        <span class="hint">Send payment to: <strong>0912345678</strong> (Demo Telebirr)</span>
+                        <label for="telebirrId" data-i18n="telebirr_label">Telebirr Transaction ID</label>
+                        <input type="text" id="telebirrId" data-i18n-placeholder="telebirr_ph" placeholder="Enter Telebirr transaction ID" required>
+                        <span class="hint" data-i18n="telebirr_hint">Send payment to: <strong>0912345678</strong> (Demo Telebirr)</span>
                     </div>
-                    <button type="submit" class="btn-pay">
+                    <button type="submit" class="btn-pay" data-i18n="pay_btn">
                         <i class="fas fa-check-circle"></i> Verify & Get Number
                     </button>
                 </form>
@@ -1163,10 +1196,172 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        // ===== API CONFIG =====
+        // ============================================================
+        // TRANSLATIONS
+        // ============================================================
+        const translations = {
+            en: {
+                app_name: 'Digital Delala',
+                hero_badge: 'Find Workers Instantly',
+                hero_title: 'Connect with <span class="highlight">Skilled Professionals</span>',
+                hero_sub: 'Search, connect, and hire the best workers in your area',
+                search_placeholder: 'Search by name, profession, or location...',
+                filter_all_professions: 'All Professions',
+                filter_all_locations: 'All Locations',
+                filter_min_price: 'Min Price',
+                filter_max_price: 'Max Price',
+                filter_apply: 'Apply',
+                section_title: 'Available Workers',
+                workers_found: 'workers found',
+                loading_workers: 'Loading workers...',
+                empty_title: 'No workers found',
+                empty_sub: 'Try adjusting your search or filters',
+                signup_title: 'Join Digital Delala',
+                signup_sub: 'Enter your name and phone number to continue',
+                signup_name: 'Full Name',
+                signup_name_ph: 'e.g., Abebe Kebede',
+                signup_phone: 'Phone Number',
+                signup_phone_ph: '09XXXXXXXX',
+                signup_continue: 'Continue',
+                detail_location: 'Location',
+                detail_experience: 'Experience',
+                detail_price: 'Price',
+                detail_status: 'Status',
+                status_available: 'Available',
+                status_unavailable: 'Unavailable',
+                get_phone: 'Get Phone Number',
+                not_available: 'Not Available',
+                phone_label: 'Phone Number',
+                copy_btn: 'Copy',
+                payment_pending: 'Payment pending confirmation. Please wait.',
+                payment_title: 'Unlock Phone Number',
+                payment_sub: 'Pay a small fee to get the worker\'s contact',
+                amount_label: 'Amount to Pay',
+                telebirr_label: 'Telebirr Transaction ID',
+                telebirr_ph: 'Enter Telebirr transaction ID',
+                telebirr_hint: 'Send payment to: <strong>0912345678</strong> (Demo Telebirr)',
+                pay_btn: 'Verify & Get Number',
+                // Toast messages
+                toast_welcome: 'Welcome, {name}!',
+                toast_payment_recorded: 'Payment recorded. Waiting for admin confirmation.',
+                toast_phone_copied: 'Phone number copied!',
+                toast_signup_error: 'Signup failed',
+                toast_network_error: 'Network error. Please try again.',
+                toast_fill_fields: 'Please fill in name and phone',
+                toast_enter_telebirr: 'Please enter your Telebirr transaction ID',
+                toast_user_not_logged: 'User not logged in. Please reload.',
+                toast_payment_verified: 'Payment verified successfully',
+                toast_payment_failed: 'Payment verification failed',
+                toast_worker_error: 'Error loading worker details',
+            },
+            am: {
+                app_name: 'ዲጂታል ደላላ',
+                hero_badge: 'ሰራተኞችን በፍጥነት ያግኙ',
+                hero_title: 'ከ<span class="highlight">ችሎታ ባለሙያዎች</span> ጋር ይገናኙ',
+                hero_sub: 'ፈልጉ፣ ይገናኙ እና በአካባቢዎ ያሉ ምርጥ ሰራተኞችን ይቅጠሩ',
+                search_placeholder: 'በስም፣ በሙያ ወይም በአካባቢ ይፈልጉ...',
+                filter_all_professions: 'ሁሉም ሙያዎች',
+                filter_all_locations: 'ሁሉም አካባቢዎች',
+                filter_min_price: 'ዝቅተኛ ዋጋ',
+                filter_max_price: 'ከፍተኛ ዋጋ',
+                filter_apply: 'ተግብር',
+                section_title: 'የሚገኙ ሰራተኞች',
+                workers_found: 'ሰራተኞች ተገኝተዋል',
+                loading_workers: 'ሰራተኞች በመጫን ላይ...',
+                empty_title: 'ምንም ሰራተኞች አልተገኙም',
+                empty_sub: 'ፍለጋዎን ወይም ማጣሪያዎችዎን ለማስተካከል ይሞክሩ',
+                signup_title: 'ዲጂታል ደላላን ይቀላቀሉ',
+                signup_sub: 'ለመቀጠል ስምዎን እና ስልክ ቁጥርዎን ያስገቡ',
+                signup_name: 'ሙሉ ስም',
+                signup_name_ph: 'ለምሳሌ አበበ ከበደ',
+                signup_phone: 'ስልክ ቁጥር',
+                signup_phone_ph: '09XXXXXXXX',
+                signup_continue: 'ቀጥል',
+                detail_location: 'አካባቢ',
+                detail_experience: 'ልምድ',
+                detail_price: 'ዋጋ',
+                detail_status: 'ሁኔታ',
+                status_available: 'ይገኛል',
+                status_unavailable: 'አይገኝም',
+                get_phone: 'ስልክ ቁጥር ያግኙ',
+                not_available: 'አይገኝም',
+                phone_label: 'ስልክ ቁጥር',
+                copy_btn: 'ቅዳ',
+                payment_pending: 'ክፍያ በመጠበቅ ላይ. እባክዎ ይጠብቁ.',
+                payment_title: 'ስልክ ቁጥር ይክፈቱ',
+                payment_sub: 'የሰራተኛውን እውቂያ ለማግኘት ትንሽ ክፍያ ይፈጽሙ',
+                amount_label: 'የሚከፈል ገንዘብ',
+                telebirr_label: 'የቴሌብር ግብይት መታወቂያ',
+                telebirr_ph: 'የቴሌብር ግብይት መታወቂያ ያስገቡ',
+                telebirr_hint: 'ክፍያ ይላኩለት: <strong>0912345678</strong> (ሙከራ ቴሌብር)',
+                pay_btn: 'አረጋግጥ እና ቁጥር አግኝ',
+                // Toast messages
+                toast_welcome: 'እንኳን ደህና መጡ፣ {name}!',
+                toast_payment_recorded: 'ክፍያ ተመዝግቧል። የአስተዳዳሪ ማረጋገጫ በመጠበቅ ላይ።',
+                toast_phone_copied: 'ስልክ ቁጥር ተቀድቷል!',
+                toast_signup_error: 'ምዝገባ አልተሳካም',
+                toast_network_error: 'የኔትወርክ ስህተት። እባክዎ እንደገና ይሞክሩ።',
+                toast_fill_fields: 'እባክዎ ስም እና ስልክ ቁጥር ይሙሉ',
+                toast_enter_telebirr: 'እባክዎ የቴሌብር ግብይት መታወቂያዎን ያስገቡ',
+                toast_user_not_logged: 'ተጠቃሚ አልገባም። እባክዎ ገፁን እንደገና ይጫኑ።',
+                toast_payment_verified: 'ክፍያ በተሳካ ሁኔታ ተረጋግጧል',
+                toast_payment_failed: 'ክፍያ ማረጋገጥ አልተሳካም',
+                toast_worker_error: 'የሰራተኛ ዝርዝሮችን በማግኘት ላይ ስህተት',
+            }
+        };
+
+        // ============================================================
+        // LANGUAGE LOGIC
+        // ============================================================
+        let currentLang = localStorage.getItem('lang') || 'en';
+
+        function translate(key, params = {}) {
+            let text = translations[currentLang]?.[key] || translations['en'][key] || key;
+            for (const [k, v] of Object.entries(params)) {
+                text = text.replace(`{${k}}`, v);
+            }
+            return text;
+        }
+
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                el.innerHTML = translate(key);
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                el.placeholder = translate(key);
+            });
+            // Update toggle button label
+            document.getElementById('langLabel').textContent = currentLang === 'en' ? 'አማርኛ' : 'English';
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'am' : 'en';
+            localStorage.setItem('lang', currentLang);
+            applyTranslations();
+            // Re-render workers to update status texts
+            if (allWorkers.length > 0) {
+                renderWorkers(allWorkers);
+            }
+            // Re-render detail modal if open
+            const detailModal = document.getElementById('workerModal');
+            if (detailModal.style.display === 'block' && currentWorkerId) {
+                openWorkerDetail(currentWorkerId);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('langToggle').addEventListener('click', toggleLanguage);
+            applyTranslations();
+        });
+
+        // ============================================================
+        // API & APP LOGIC
+        // ============================================================
         const API_URL = window.location.origin + '/api';
 
-        // ===== DOM REFS =====
+        // DOM REFS
         const signupModal = document.getElementById('signupModal');
         const signupForm = document.getElementById('signupForm');
         const signupName = document.getElementById('signupName');
@@ -1193,7 +1388,8 @@
         let userTransactions = [];
 
         // ===== TOAST =====
-        function showToast(message, type = 'info') {
+        function showToast(messageKey, type = 'info', params = {}) {
+            const message = translate(messageKey, params);
             toast.textContent = message;
             toast.className = 'toast show ' + type;
             clearTimeout(toast._timeout);
@@ -1225,7 +1421,7 @@
             const phone = signupPhone.value.trim();
 
             if (!name || !phone) {
-                showToast('Please fill in name and phone', 'error');
+                showToast('toast_fill_fields', 'error');
                 return;
             }
 
@@ -1241,16 +1437,16 @@
                     localStorage.setItem('userId', userId);
                     localStorage.setItem('userName', name);
                     localStorage.setItem('userPhone', phone);
-                    showToast('Welcome, ' + name + '!', 'success');
+                    showToast('toast_welcome', 'success', { name });
                     signupModal.style.display = 'none';
                     document.body.style.overflow = 'auto';
                     userIdField.value = userId;
                     fetchWorkers();
                 } else {
-                    showToast(data.error || 'Signup failed', 'error');
+                    showToast('toast_signup_error', 'error');
                 }
             } catch (error) {
-                showToast('Network error. Please try again.', 'error');
+                showToast('toast_network_error', 'error');
                 console.error(error);
             }
         });
@@ -1281,10 +1477,10 @@
                     allWorkers = data.data;
                     renderWorkers(allWorkers);
                 } else {
-                    showToast('Error fetching workers', 'error');
+                    showToast('toast_network_error', 'error');
                 }
             } catch (error) {
-                showToast('Network error. Please try again.', 'error');
+                showToast('toast_network_error', 'error');
                 console.error('Error:', error);
             } finally {
                 loadingIndicator.style.display = 'none';
@@ -1306,11 +1502,12 @@
                 workersGrid.innerHTML = `
                     <div class="empty-state" style="grid-column: 1/-1;">
                         <i class="fas fa-search"></i>
-                        <h3>No workers found</h3>
-                        <p>Try adjusting your search or filters</p>
+                        <h3 data-i18n="empty_title">No workers found</h3>
+                        <p data-i18n="empty_sub">Try adjusting your search or filters</p>
                     </div>
                 `;
-                workerCount.textContent = '0 workers found';
+                workerCount.textContent = `0 ${translate('workers_found')}`;
+                applyTranslations(); // re-apply after dynamic HTML
                 return;
             }
 
@@ -1320,6 +1517,9 @@
                     `<img src="${imgSrc}" alt="${worker.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />` +
                     `<div style="display:none;"><i class="fas fa-user"></i></div>` :
                     `<i class="fas fa-user"></i>`;
+
+                const statusText = worker.isAvailable ? translate('status_available') : translate('status_unavailable');
+                const statusClass = worker.isAvailable ? 'available' : 'unavailable';
 
                 return `
                     <div class="worker-card" onclick="openWorkerDetail('${worker._id}')">
@@ -1340,16 +1540,17 @@
                         ${worker.description ? `<div class="worker-description">${worker.description.substring(0, 80)}${worker.description.length > 80 ? '...' : ''}</div>` : ''}
                         <div class="worker-bottom">
                             <span class="worker-price">${worker.price} <small>ETB</small></span>
-                            <span class="worker-status ${worker.isAvailable ? 'available' : 'unavailable'}">
+                            <span class="worker-status ${statusClass}">
                                 <i class="fas ${worker.isAvailable ? 'fa-check-circle' : 'fa-times-circle'}"></i>
-                                ${worker.isAvailable ? 'Available' : 'Unavailable'}
+                                ${statusText}
                             </span>
                         </div>
                     </div>
                 `;
             }).join('');
 
-            workerCount.textContent = `${workers.length} worker${workers.length !== 1 ? 's' : ''} found`;
+            workerCount.textContent = `${workers.length} ${translate('workers_found')}`;
+            // Re-apply translations for dynamic empty state or any embedded data-i18n (if any)
         }
 
         // ===== FETCH USER TRANSACTIONS =====
@@ -1380,7 +1581,7 @@
 
                 const workerData = await workerRes.json();
                 if (!workerData.success) {
-                    showToast('Error loading worker details', 'error');
+                    showToast('toast_worker_error', 'error');
                     return;
                 }
 
@@ -1396,22 +1597,23 @@
                 if (isCompleted && phoneNumber) {
                     actionHtml = `
                         <div class="phone-number-display">
-                            <div class="label">📞 Phone Number</div>
+                            <div class="label">📞 ${translate('phone_label')}</div>
                             <div class="number">${phoneNumber}</div>
-                            <button class="copy-btn" onclick="copyPhoneNumber('${phoneNumber}')"><i class="fas fa-copy"></i> Copy</button>
+                            <button class="copy-btn" onclick="copyPhoneNumber('${phoneNumber}')"><i class="fas fa-copy"></i> ${translate('copy_btn')}</button>
                         </div>
                     `;
                 } else if (isPending) {
                     actionHtml = `
                         <div class="payment-pending">
-                            <i class="fas fa-clock"></i> Payment pending confirmation. Please wait.
+                            <i class="fas fa-clock"></i> ${translate('payment_pending')}
                         </div>
                     `;
                 } else {
+                    const btnText = worker.isAvailable ? translate('get_phone') : translate('not_available');
                     actionHtml = `
                         <button onclick="openPaymentModal('${worker._id}', ${worker.price})" class="btn-primary" ${!worker.isAvailable ? 'disabled' : ''}>
                             <i class="fas ${worker.isAvailable ? 'fa-phone' : 'fa-ban'}"></i>
-                            ${worker.isAvailable ? 'Get Phone Number' : 'Not Available'}
+                            ${btnText}
                         </button>
                     `;
                 }
@@ -1421,6 +1623,9 @@
                     `<img src="${imgSrc}" alt="${worker.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />` +
                     `<div style="display:none;"><i class="fas fa-user"></i></div>` :
                     `<i class="fas fa-user"></i>`;
+
+                const statusText = worker.isAvailable ? translate('status_available') : translate('status_unavailable');
+                const statusColor = worker.isAvailable ? 'var(--success)' : 'var(--danger)';
 
                 workerDetailContent.innerHTML = `
                     <div style="text-align: center;">
@@ -1433,22 +1638,22 @@
                     </div>
                     <div class="worker-detail-info">
                         <div class="item">
-                            <span class="label">Location</span>
+                            <span class="label">${translate('detail_location')}</span>
                             <span class="value"><i class="fas fa-map-marker-alt" style="color: var(--primary); font-size: 14px;"></i> ${worker.location}</span>
                         </div>
                         <div class="item">
-                            <span class="label">Experience</span>
+                            <span class="label">${translate('detail_experience')}</span>
                             <span class="value">${worker.experience} years</span>
                         </div>
                         <div class="item">
-                            <span class="label">Price</span>
+                            <span class="label">${translate('detail_price')}</span>
                             <span class="value" style="color: var(--primary);">${worker.price} ETB</span>
                         </div>
                         <div class="item">
-                            <span class="label">Status</span>
-                            <span class="value" style="color: ${worker.isAvailable ? 'var(--success)' : 'var(--danger)'};">
+                            <span class="label">${translate('detail_status')}</span>
+                            <span class="value" style="color: ${statusColor};">
                                 <i class="fas ${worker.isAvailable ? 'fa-check-circle' : 'fa-times-circle'}"></i>
-                                ${worker.isAvailable ? 'Available' : 'Unavailable'}
+                                ${statusText}
                             </span>
                         </div>
                     </div>
@@ -1459,7 +1664,7 @@
                 workerModal.style.display = 'block';
                 document.body.style.overflow = 'hidden';
             } catch (error) {
-                showToast('Error loading worker details', 'error');
+                showToast('toast_worker_error', 'error');
                 console.error('Error:', error);
             }
         }
@@ -1467,7 +1672,7 @@
         // ===== COPY PHONE NUMBER =====
         function copyPhoneNumber(number) {
             navigator.clipboard?.writeText(number).then(() => {
-                showToast('Phone number copied!', 'success');
+                showToast('toast_phone_copied', 'success');
             }).catch(() => {
                 const input = document.createElement('input');
                 input.value = number;
@@ -1475,7 +1680,7 @@
                 input.select();
                 document.execCommand('copy');
                 document.body.removeChild(input);
-                showToast('Phone number copied!', 'success');
+                showToast('toast_phone_copied', 'success');
             });
         }
 
@@ -1499,11 +1704,11 @@
             const amount = parseInt(paymentAmount.textContent.replace(/[^0-9]/g, ''));
 
             if (!userId) {
-                showToast('User not logged in. Please reload.', 'error');
+                showToast('toast_user_not_logged', 'error');
                 return;
             }
             if (!telebirrId) {
-                showToast('Please enter your Telebirr transaction ID', 'error');
+                showToast('toast_enter_telebirr', 'error');
                 return;
             }
 
@@ -1521,7 +1726,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    showToast('✅ Payment recorded. Waiting for admin confirmation.', 'success');
+                    showToast('toast_payment_recorded', 'success');
                     paymentModal.style.display = 'none';
                     await fetchUserTransactions();
                     setTimeout(() => {
@@ -1530,10 +1735,10 @@
                         openWorkerDetail(currentWorkerId);
                     }, 1000);
                 } else {
-                    showToast(data.error || 'Payment verification failed', 'error');
+                    showToast('toast_payment_failed', 'error');
                 }
             } catch (error) {
-                showToast('Network error. Please try again.', 'error');
+                showToast('toast_network_error', 'error');
                 console.error('Error:', error);
             }
         });
