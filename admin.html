@@ -578,6 +578,7 @@
             align-items:center;
             gap:12px;
             margin-top:4px;
+            flex-wrap:wrap;
         }
         .file-preview {
             width:56px;
@@ -783,6 +784,7 @@
                         <div class="file-preview-wrap">
                             <div id="imagePreview" class="file-preview-placeholder"><i class="fas fa-camera"></i></div>
                             <span style="font-size:12px; color:var(--gray-500);">File or URL (URL takes priority)</span>
+                            <button type="button" id="removeImageBtn" class="btn-danger" style="padding:4px 10px; font-size:12px; display:none;">Remove Image</button>
                         </div>
                     </div>
                 </div>
@@ -818,11 +820,13 @@
         const workerImageInput = document.getElementById('workerImage');
         const workerImageUrlInput = document.getElementById('workerImageUrl');
         const imagePreview = document.getElementById('imagePreview');
+        const removeImageBtn = document.getElementById('removeImageBtn');
 
         let authToken = localStorage.getItem('adminToken');
         let allWorkers = [];
         let currentImageFile = null;
         let currentImageUrl = '';
+        let removeImageFlag = false;
 
         // ===== TOAST =====
         function showToast(message, type = 'info') {
@@ -946,7 +950,7 @@
             }
         }
 
-        // ===== RENDER WORKERS (with toggle) =====
+        // ===== RENDER WORKERS =====
         function renderWorkers(workers) {
             const container = document.getElementById('workersList');
             if (!workers.length) {
@@ -987,7 +991,6 @@
                         </div>
                     </div>
                     <div class="worker-actions">
-                        <!-- Availability Toggle -->
                         <div class="toggle-wrap" onclick="toggleAvailability('${w._id}', ${w.isAvailable})" title="Click to toggle availability">
                             <span class="toggle-dot ${dotClass}"></span>
                             <span class="toggle-label">${label}</span>
@@ -1060,6 +1063,7 @@
                             <div style="display:flex; align-items:center; gap:12px;">
                                 <span class="transaction-amount">${t.amount} ETB</span>
                                 <button class="btn-success" onclick="confirmPayment('${t._id}')"><i class="fas fa-check"></i> Confirm</button>
+                                <button class="btn-danger" onclick="rejectPayment('${t._id}')"><i class="fas fa-times"></i> Reject</button>
                             </div>
                         </div>
                     `).join('');
@@ -1088,6 +1092,27 @@
             }
         }
 
+        // ===== REJECT PAYMENT =====
+        async function rejectPayment(transactionId) {
+            if (!confirm('Reject this payment? The customer will not get the phone number.')) return;
+            try {
+                const data = await apiRequest(`${API_URL}/admin/transactions/${transactionId}/reject`, {
+                    method: 'PUT'
+                });
+                if (data.success) {
+                    showToast('Payment rejected.', 'success');
+                    loadPending();
+                    loadTransactions();
+                    loadDashboard();
+                } else {
+                    showToast(data.error || 'Error rejecting payment', 'error');
+                }
+            } catch (err) {
+                showToast('Network error', 'error');
+                console.error(err);
+            }
+        }
+
         // ===== EDIT WORKER =====
         function editWorker(id) {
             const w = allWorkers.find(x => x._id === id);
@@ -1102,6 +1127,8 @@
             document.getElementById('workerPhone').value = w.phone;
             document.getElementById('workerDescription').value = w.description || '';
             document.getElementById('workerAvailable').checked = w.isAvailable;
+            removeImageFlag = false;
+            removeImageBtn.style.display = 'none';
             if (w.image) {
                 let imgUrl = w.image;
                 if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
@@ -1114,10 +1141,12 @@
                 } else {
                     workerImageUrlInput.value = '';
                 }
+                removeImageBtn.style.display = 'inline-block';
             } else {
                 imagePreview.innerHTML = '<i class="fas fa-camera"></i>';
                 imagePreview.className = 'file-preview-placeholder';
                 workerImageUrlInput.value = '';
+                removeImageBtn.style.display = 'none';
             }
             currentImageFile = null;
             currentImageUrl = workerImageUrlInput.value;
@@ -1127,11 +1156,23 @@
 
         // ===== DELETE WORKER =====
         async function deleteWorker(id) {
-            if (!confirm('Delete this worker permanently?')) return;
+            // Check for pending transactions
+            try {
+                const pendingData = await apiRequest(`${API_URL}/admin/transactions/pending`);
+                const hasPending = pendingData.data.some(t => t.workerId?._id === id);
+                let msg = 'Delete this worker permanently?';
+                if (hasPending) {
+                    msg = 'This worker has pending transactions. Deleting will mark them as failed. Continue?';
+                }
+                if (!confirm(msg)) return;
+            } catch (err) {
+                if (!confirm('Delete this worker permanently?')) return;
+            }
+
             try {
                 const data = await apiRequest(`${API_URL}/admin/workers/${id}`, { method: 'DELETE' });
                 if (data.success) {
-                    showToast('Worker deleted', 'success');
+                    showToast('Worker deleted and related transactions marked as failed.', 'success');
                     loadWorkers();
                     loadDashboard();
                 } else {
@@ -1153,6 +1194,8 @@
             currentImageFile = file;
             currentImageUrl = '';
             workerImageUrlInput.value = '';
+            removeImageFlag = false;
+            removeImageBtn.style.display = 'none';
             const reader = new FileReader();
             reader.onload = function(ev) {
                 imagePreview.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
@@ -1167,6 +1210,8 @@
             if (url) {
                 currentImageFile = null;
                 workerImageInput.value = '';
+                removeImageFlag = false;
+                removeImageBtn.style.display = 'none';
                 imagePreview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
                 imagePreview.className = 'file-preview';
             } else {
@@ -1184,12 +1229,27 @@
                 imagePreview.className = 'file-preview';
                 currentImageUrl = url;
                 currentImageFile = null;
+                removeImageFlag = false;
+                removeImageBtn.style.display = 'none';
             } else {
                 imagePreview.innerHTML = '<i class="fas fa-camera"></i>';
                 imagePreview.className = 'file-preview-placeholder';
                 currentImageUrl = '';
             }
         }
+
+        // ===== REMOVE IMAGE BUTTON =====
+        removeImageBtn.addEventListener('click', function() {
+            if (!confirm('Remove the current image?')) return;
+            removeImageFlag = true;
+            imagePreview.innerHTML = '<i class="fas fa-camera"></i>';
+            imagePreview.className = 'file-preview-placeholder';
+            workerImageInput.value = '';
+            workerImageUrlInput.value = '';
+            currentImageFile = null;
+            currentImageUrl = '';
+            this.style.display = 'none';
+        });
 
         // ===== ADD WORKER =====
         addWorkerBtn.addEventListener('click', () => {
@@ -1201,6 +1261,8 @@
             currentImageUrl = '';
             workerImageUrlInput.value = '';
             workerImageInput.value = '';
+            removeImageFlag = false;
+            removeImageBtn.style.display = 'none';
             imagePreview.innerHTML = '<i class="fas fa-camera"></i>';
             imagePreview.className = 'file-preview-placeholder';
             workerModal.style.display = 'block';
@@ -1221,11 +1283,16 @@
             formData.append('description', document.getElementById('workerDescription').value.trim());
             formData.append('isAvailable', document.getElementById('workerAvailable').checked ? 'true' : 'false');
 
-            const url = workerImageUrlInput.value.trim();
-            if (currentImageFile) {
-                formData.append('image', currentImageFile);
-            } else if (url) {
-                formData.append('imageUrl', url);
+            if (removeImageFlag) {
+                formData.append('image', '');
+            } else {
+                const url = workerImageUrlInput.value.trim();
+                if (currentImageFile) {
+                    formData.append('image', currentImageFile);
+                } else if (url) {
+                    formData.append('imageUrl', url);
+                }
+                // otherwise keep existing (if editing)
             }
 
             const method = id ? 'PUT' : 'POST';
@@ -1289,11 +1356,15 @@
 
         // ===== INIT =====
         checkAuth();
+        // Refresh stats and pending every 30 seconds
         setInterval(() => {
-            if (authToken) apiRequest(`${API_URL}/admin/stats`).catch(() => {});
-        }, 5 * 60 * 1000);
+            if (authToken) {
+                loadDashboard();
+                loadPending();
+            }
+        }, 30000);
 
-        console.log('🔐 Digital Delala Admin Panel (with Availability Toggle)');
+        console.log('🔐 Digital Delala Admin Panel (Fully Updated)');
     </script>
 </body>
 </html>
