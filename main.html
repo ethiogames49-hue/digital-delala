@@ -105,6 +105,11 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
         .lang-btn {
             background: rgba(255, 255, 255, 0.06);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -126,6 +131,27 @@
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(124, 108, 240, 0.15);
+        }
+        .info-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--text-secondary);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .info-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent);
+            color: white;
+            transform: scale(1.06);
         }
 
         /* ─── Main Content ─── */
@@ -171,7 +197,7 @@
         /* ─── Workers Grid ─── */
         .workers-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 28px;
         }
         .worker-card {
@@ -179,14 +205,14 @@
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border-radius: var(--radius);
-            padding: 24px;
+            padding: 28px;
             border: 1px solid var(--card-border);
             transition: var(--transition);
             display: flex;
             flex-direction: column;
             position: relative;
             box-shadow: var(--shadow-card);
-            cursor: pointer; /* ← makes card clickable */
+            cursor: pointer;
         }
         .worker-card::before {
             content: '';
@@ -209,12 +235,12 @@
         .worker-card-top {
             display: flex;
             align-items: center;
-            gap: 18px;
-            margin-bottom: 14px;
+            gap: 20px;
+            margin-bottom: 16px;
         }
         .worker-avatar {
-            width: 76px;
-            height: 76px;
+            width: 96px; /* larger */
+            height: 96px;
             border-radius: 50%;
             flex-shrink: 0;
             overflow: hidden;
@@ -231,7 +257,7 @@
             object-fit: cover;
         }
         .worker-avatar i {
-            font-size: 32px;
+            font-size: 40px;
             color: white;
         }
         .worker-name-wrap {
@@ -241,7 +267,7 @@
             flex-wrap: wrap;
         }
         .worker-name {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 700;
             letter-spacing: -0.3px;
         }
@@ -265,11 +291,11 @@
         .worker-profession {
             display: inline-block;
             margin-top: 4px;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             color: var(--accent);
             background: rgba(124, 108, 240, 0.12);
-            padding: 2px 16px;
+            padding: 4px 18px;
             border-radius: 50px;
             border: 1px solid rgba(124, 108, 240, 0.1);
         }
@@ -480,8 +506,8 @@
 
         /* ─── Worker Detail ─── */
         .worker-detail-avatar {
-            width: 120px;
-            height: 120px;
+            width: 160px; /* much larger */
+            height: 160px;
             border-radius: 50%;
             margin: 0 auto 18px;
             overflow: hidden;
@@ -504,7 +530,7 @@
             object-fit: cover;
         }
         .worker-detail-avatar i {
-            font-size: 48px;
+            font-size: 64px;
             color: white;
         }
         .worker-detail-name {
@@ -856,6 +882,47 @@
             background: linear-gradient(145deg, var(--accent), #5b4bd5);
         }
 
+        /* ─── Developer Info Modal ─── */
+        .developer-info-content {
+            text-align: center;
+        }
+        .developer-info-content .dev-icon {
+            font-size: 64px;
+            color: var(--accent);
+            margin-bottom: 12px;
+            display: block;
+        }
+        .developer-info-content h2 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .developer-info-content p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.7;
+            margin-bottom: 8px;
+        }
+        .developer-info-content .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .dev-social {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .dev-social a {
+            color: var(--text-secondary);
+            font-size: 28px;
+            transition: var(--transition);
+        }
+        .dev-social a:hover {
+            color: var(--accent);
+            transform: translateY(-4px);
+        }
+
         /* ─── Responsive ─── */
         @media (max-width: 768px) {
             .main {
@@ -868,6 +935,20 @@
             .workers-grid {
                 grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
                 gap: 20px;
+            }
+            .worker-avatar {
+                width: 72px;
+                height: 72px;
+            }
+            .worker-avatar i {
+                font-size: 30px;
+            }
+            .worker-detail-avatar {
+                width: 120px;
+                height: 120px;
+            }
+            .worker-detail-avatar i {
+                font-size: 48px;
             }
             .worker-detail-info {
                 grid-template-columns: 1fr;
@@ -897,6 +978,11 @@
                 font-size: 13px;
                 padding: 6px 14px;
             }
+            .info-btn {
+                width: 38px;
+                height: 38px;
+                font-size: 18px;
+            }
             .telebirr-instructions .number {
                 font-size: 28px;
                 padding: 6px 16px;
@@ -904,10 +990,6 @@
             .modal-content {
                 margin: 20px auto;
                 padding: 24px;
-            }
-            .worker-detail-avatar {
-                width: 96px;
-                height: 96px;
             }
             .worker-detail-name {
                 font-size: 24px;
@@ -918,11 +1000,21 @@
                 padding: 18px;
             }
             .worker-avatar {
-                width: 60px;
-                height: 60px;
+                width: 64px;
+                height: 64px;
+            }
+            .worker-avatar i {
+                font-size: 28px;
             }
             .worker-name {
-                font-size: 17px;
+                font-size: 18px;
+            }
+            .worker-detail-avatar {
+                width: 100px;
+                height: 100px;
+            }
+            .worker-detail-avatar i {
+                font-size: 40px;
             }
             .toast {
                 padding: 14px 20px;
@@ -941,10 +1033,13 @@
             <div class="logo-icon"><i class="fas fa-bolt"></i></div>
             <span class="logo-text" data-i18n="app_name">Digital Delala</span>
         </a>
-        <button id="langToggle" class="lang-btn">
-            <i class="fas fa-globe"></i>
-            <span id="langLabel">አማርኛ</span>
-        </button>
+        <div class="header-actions">
+            <button class="info-btn" id="infoBtn" title="About Developer"><i class="fas fa-info-circle"></i></button>
+            <button id="langToggle" class="lang-btn">
+                <i class="fas fa-globe"></i>
+                <span id="langLabel">አማርኛ</span>
+            </button>
+        </div>
     </div>
 </header>
 
@@ -958,10 +1053,10 @@
         <!-- Rendered by JS -->
     </div>
     <div id="loadingIndicator" class="loading-indicator" style="display:none; text-align:center; padding:40px 20px;">
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:28px;">
-            <div class="skeleton" style="height:280px;"></div>
-            <div class="skeleton" style="height:280px;"></div>
-            <div class="skeleton" style="height:280px;"></div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:28px;">
+            <div class="skeleton" style="height:300px;"></div>
+            <div class="skeleton" style="height:300px;"></div>
+            <div class="skeleton" style="height:300px;"></div>
         </div>
     </div>
 </main>
@@ -1025,6 +1120,36 @@
                 </button>
             </form>
         </div>
+    </div>
+</div>
+
+<!-- ─── DEVELOPER INFO MODAL ─── -->
+<div id="developerModal" class="modal">
+    <div class="modal-content developer-info-content">
+        <span class="close-modal">&times;</span>
+        <i class="fas fa-code dev-icon"></i>
+        <h2>About the Developer</h2>
+        <p>
+            <span class="highlight">Digital Delala</span> is built with ❤️ by a passionate developer 
+            dedicated to connecting skilled workers with customers in Ethiopia.
+        </p>
+        <p>
+            <i class="fas fa-envelope" style="color:var(--accent);"></i> 
+            <span class="highlight">dev@digitaldelala.com</span>
+        </p>
+        <p>
+            <i class="fas fa-map-marker-alt" style="color:var(--accent);"></i> 
+            Addis Ababa, Ethiopia
+        </p>
+        <div class="dev-social">
+            <a href="#" target="_blank"><i class="fab fa-github"></i></a>
+            <a href="#" target="_blank"><i class="fab fa-linkedin"></i></a>
+            <a href="#" target="_blank"><i class="fab fa-twitter"></i></a>
+            <a href="#" target="_blank"><i class="fab fa-telegram"></i></a>
+        </div>
+        <p style="margin-top:18px; font-size:13px; color:var(--text-muted);">
+            © 2026 Digital Delala. All rights reserved.
+        </p>
     </div>
 </div>
 
@@ -1166,6 +1291,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('langToggle').addEventListener('click', toggleLanguage);
+        // Info button
+        document.getElementById('infoBtn').addEventListener('click', () => {
+            document.getElementById('developerModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            pushModalState('developerModal');
+        });
         applyTranslations();
         checkUser();
         if (localStorage.getItem('userId')) fetchUserTransactions();
@@ -1190,6 +1321,7 @@
     const toast = document.getElementById('toast');
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = document.getElementById('lightboxImg');
+    const developerModal = document.getElementById('developerModal');
 
     let currentWorkerId = null;
     let allWorkers = [];
@@ -1231,6 +1363,12 @@
     }
 
     function handlePopState(e) {
+        if (developerModal.style.display === 'block') {
+            developerModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            history.pushState({ modal: false }, '');
+            return;
+        }
         if (paymentModal.style.display === 'block') {
             paymentModal.style.display = 'none';
             document.body.style.overflow = 'auto';
@@ -1352,7 +1490,6 @@
 
             const dotClass = worker.isAvailable ? 'available' : 'unavailable';
 
-            // ⬇️  CARD CLICKABLE – entire card opens detail
             return `
                 <div class="worker-card" onclick="openWorkerDetail('${worker._id}')">
                     <div class="worker-card-top">
@@ -1372,7 +1509,6 @@
                     </div>
                     ${worker.description ? `<div class="worker-description">${worker.description.substring(0, 70)}${worker.description.length > 70 ? '...' : ''}</div>` : ''}
                     <div class="worker-bottom">
-                        <!-- Button now stops propagation so it doesn't trigger card click twice -->
                         <button class="call-btn" onclick="event.stopPropagation(); openWorkerDetail('${worker._id}')">
                             <i class="fas fa-phone"></i> Call Now
                         </button>
@@ -1591,6 +1727,12 @@
                 closeLightbox();
                 return;
             }
+            if (developerModal.style.display === 'block') {
+                developerModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                history.pushState({ modal: false }, '');
+                return;
+            }
             if (paymentModal.style.display === 'block') {
                 paymentModal.style.display = 'none';
                 document.body.style.overflow = 'auto';
@@ -1606,7 +1748,7 @@
         }
     });
 
-    console.log('🚀 Digital Delala - Clickable Cards');
+    console.log('🚀 Digital Delala - Bigger Avatars & Info Button');
 </script>
 </body>
 </html>
