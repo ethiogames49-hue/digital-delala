@@ -8,27 +8,14 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const multer = require('multer');
-const fs = require('fs');
 
 const app = express();
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, 'public/uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Multer config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, unique + path.extname(file.originalname));
-  }
-});
+// Multer config – memory storage (no disk)
+const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|gif|webp/;
     const isValid = allowed.test(path.extname(file.originalname).toLowerCase()) &&
@@ -37,18 +24,15 @@ const upload = multer({
   }
 });
 
-// Security
+// Security & middleware
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-
-// Rate limiting
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api/', limiter);
-
-// Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // allow large base64 images
 app.use(express.static('public'));
-app.use('/uploads', express.static(uploadDir));
+// Keep /uploads for backward compatibility (if any files are still there)
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Serve HTML
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'main.html')));
@@ -60,7 +44,6 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // ============ MODELS ============
-
 const workerSchema = new mongoose.Schema({
   name: { type: String, required: true },
   profession: { type: String, required: true },
@@ -69,7 +52,7 @@ const workerSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true },
   price: { type: Number, required: true },
   rating: { type: Number, default: 0 },
-  image: { type: String },
+  image: { type: String }, // can be base64 data URL or external URL
   description: { type: String },
   isAvailable: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
@@ -91,13 +74,10 @@ const transactionSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   telebirrTransactionId: { type: String, required: true, unique: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
-  phoneNumber: { type: String }, // worker's phone (unlocked)
+  phoneNumber: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
-
-// TTL index to auto-delete pending transactions after 7 days
 transactionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 604800, partialFilterExpression: { status: 'pending' } });
-
 const Transaction = mongoose.model('Transaction', transactionSchema);
 
 const adminSchema = new mongoose.Schema({
@@ -108,7 +88,6 @@ const adminSchema = new mongoose.Schema({
 const Admin = mongoose.model('Admin', adminSchema);
 
 // ============ MIDDLEWARE ============
-
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -122,7 +101,6 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-// Helper to parse boolean from string/boolean
 const parseBoolean = (val) => {
   if (typeof val === 'boolean') return val;
   if (typeof val === 'string') return val.toLowerCase() === 'true';
@@ -130,8 +108,6 @@ const parseBoolean = (val) => {
 };
 
 // ============ PUBLIC ROUTES ============
-
-// Get all workers (public)
 app.get('/api/workers', async (req, res) => {
   try {
     const { profession, location, minPrice, maxPrice, search } = req.query;
@@ -157,7 +133,6 @@ app.get('/api/workers', async (req, res) => {
   }
 });
 
-// Get single worker (public)
 app.get('/api/workers/:id', async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
@@ -168,7 +143,6 @@ app.get('/api/workers/:id', async (req, res) => {
   }
 });
 
-// User signup (public)
 app.post('/api/users', async (req, res) => {
   try {
     const { name, phone } = req.body;
@@ -189,26 +163,20 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// Unlock phone: creates a pending transaction
 app.post('/api/workers/:id/phone', async (req, res) => {
   try {
     const { telebirrTransactionId, userId, amount } = req.body;
     if (!telebirrTransactionId || !userId || !amount) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
-
-    // FIX: Check if worker is available
     if (!worker.isAvailable) {
       return res.status(400).json({ error: 'Worker is not available' });
     }
-
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // FIX: Prevent duplicate payment for same worker by this user (pending or completed)
     const existingTx = await Transaction.findOne({
       userId,
       workerId: req.params.id,
@@ -220,7 +188,6 @@ app.post('/api/workers/:id/phone', async (req, res) => {
       });
     }
 
-    // FIX: Catch duplicate Telebirr ID
     const transaction = new Transaction({
       workerId: worker._id,
       userId: user._id,
@@ -229,9 +196,8 @@ app.post('/api/workers/:id/phone', async (req, res) => {
       amount,
       telebirrTransactionId,
       status: 'pending',
-      phoneNumber: worker.phone // stored but not revealed until confirmed
+      phoneNumber: worker.phone
     });
-
     await transaction.save();
 
     res.json({
@@ -240,7 +206,6 @@ app.post('/api/workers/:id/phone', async (req, res) => {
       data: { transactionId: transaction._id }
     });
   } catch (error) {
-    // Duplicate key error (telebirrTransactionId)
     if (error.code === 11000) {
       return res.status(400).json({ error: 'Transaction ID already used. Please check and try again.' });
     }
@@ -248,14 +213,12 @@ app.post('/api/workers/:id/phone', async (req, res) => {
   }
 });
 
-// Get user's transactions (with phone number only if completed)
 app.get('/api/users/:userId/transactions', async (req, res) => {
   try {
     const userId = req.params.userId;
     const transactions = await Transaction.find({ userId })
       .populate('workerId', 'name profession')
       .sort({ createdAt: -1 });
-    // Mask phone number if not completed
     const data = transactions.map(t => {
       const obj = t.toObject();
       if (t.status !== 'completed') {
@@ -270,7 +233,6 @@ app.get('/api/users/:userId/transactions', async (req, res) => {
 });
 
 // ============ ADMIN ROUTES ============
-
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -289,7 +251,6 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Get all pending transactions (admin)
 app.get('/api/admin/transactions/pending', authenticateToken, async (req, res) => {
   try {
     const transactions = await Transaction.find({ status: 'pending' })
@@ -302,7 +263,6 @@ app.get('/api/admin/transactions/pending', authenticateToken, async (req, res) =
   }
 });
 
-// Confirm a pending transaction (admin)
 app.put('/api/admin/transactions/:id/confirm', authenticateToken, async (req, res) => {
   try {
     const transaction = await Transaction.findById(req.params.id);
@@ -318,7 +278,6 @@ app.put('/api/admin/transactions/:id/confirm', authenticateToken, async (req, re
   }
 });
 
-// NEW: Reject a pending transaction (admin)
 app.put('/api/admin/transactions/:id/reject', authenticateToken, async (req, res) => {
   try {
     const transaction = await Transaction.findById(req.params.id);
@@ -334,15 +293,18 @@ app.put('/api/admin/transactions/:id/reject', authenticateToken, async (req, res
   }
 });
 
-// Create worker (admin)
+// Create worker (admin) – image stored as base64
 app.post('/api/admin/workers', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const workerData = { ...req.body };
-    if (req.file) workerData.image = req.file.filename;
-    else if (req.body.imageUrl && req.body.imageUrl.trim() !== '') {
+    if (req.file) {
+      const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      workerData.image = base64;
+    } else if (req.body.imageUrl && req.body.imageUrl.trim() !== '') {
       workerData.image = req.body.imageUrl.trim();
+    } else if (req.body.image === '') {
+      workerData.image = null;
     }
-    // FIX: Use helper to parse isAvailable
     if (workerData.isAvailable !== undefined) {
       workerData.isAvailable = parseBoolean(workerData.isAvailable);
     }
@@ -350,7 +312,6 @@ app.post('/api/admin/workers', authenticateToken, upload.single('image'), async 
     await worker.save();
     res.status(201).json({ success: true, data: worker });
   } catch (error) {
-    if (req.file) fs.unlinkSync(req.file.path);
     res.status(400).json({ error: error.message });
   }
 });
@@ -362,36 +323,18 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
 
     const updateData = { ...req.body };
-    // Handle image update
+
     if (req.file) {
-      // Remove old image if exists and not a URL
-      if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
-        const oldPath = path.join(uploadDir, worker.image);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-      updateData.image = req.file.filename;
+      const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      updateData.image = base64;
     } else if (req.body.imageUrl && req.body.imageUrl.trim() !== '') {
       updateData.image = req.body.imageUrl.trim();
-      // Remove old local file
-      if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
-        const oldPath = path.join(uploadDir, worker.image);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
+    } else if (req.body.image === '') {
+      updateData.image = null;
     } else {
-      // If image is explicitly set to empty string, remove image
-      if (req.body.image === '') {
-        if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
-          const oldPath = path.join(uploadDir, worker.image);
-          if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-        }
-        updateData.image = null;
-      } else {
-        // keep existing
-        updateData.image = worker.image;
-      }
+      updateData.image = worker.image;
     }
 
-    // FIX: Parse isAvailable
     if (updateData.isAvailable !== undefined) {
       updateData.isAvailable = parseBoolean(updateData.isAvailable);
     }
@@ -400,7 +343,6 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
     await worker.save();
     res.json({ success: true, data: worker });
   } catch (error) {
-    if (req.file) fs.unlinkSync(req.file.path);
     res.status(400).json({ error: error.message });
   }
 });
@@ -411,15 +353,7 @@ app.delete('/api/admin/workers/:id', authenticateToken, async (req, res) => {
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
 
-    // FIX: Mark related transactions as failed to avoid orphan references
     await Transaction.updateMany({ workerId: worker._id }, { status: 'failed' });
-
-    // Delete image file if local
-    if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
-      const oldPath = path.join(uploadDir, worker.image);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
-
     await worker.deleteOne();
     res.json({ success: true, message: 'Worker deleted and related transactions marked as failed.' });
   } catch (error) {
@@ -427,7 +361,6 @@ app.delete('/api/admin/workers/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Get all transactions (admin)
 app.get('/api/admin/transactions', authenticateToken, async (req, res) => {
   try {
     const transactions = await Transaction.find()
@@ -440,7 +373,6 @@ app.get('/api/admin/transactions', authenticateToken, async (req, res) => {
   }
 });
 
-// Stats (admin)
 app.get('/api/admin/stats', authenticateToken, async (req, res) => {
   try {
     const totalWorkers = await Worker.countDocuments();
@@ -465,7 +397,6 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
 });
 
 // ============ INITIALIZE ADMIN ============
-
 const initializeAdmin = async () => {
   try {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@digitaldelala.com';
@@ -485,14 +416,12 @@ const initializeAdmin = async () => {
 };
 
 // ============ START SERVER ============
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   await initializeAdmin();
 });
 
-// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
