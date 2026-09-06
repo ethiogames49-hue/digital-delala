@@ -233,7 +233,6 @@
             font-weight:700;
             line-height:1.2;
         }
-        /* ─── Small Green Dot ─── */
         .status-dot {
             display:inline-block;
             width:10px;
@@ -479,6 +478,19 @@
             font-size:14px;
             border:1px solid rgba(147,94,56,0.15);
         }
+
+        .btn-edit {
+            padding:4px 12px;
+            background:#EEF2FF;
+            color:var(--primary);
+            border:none;
+            border-radius:var(--radius-xs);
+            font-weight:600;
+            cursor:pointer;
+            transition:var(--transition);
+            font-size:12px;
+        }
+        .btn-edit:hover { background:var(--primary); color:white; }
 
         /* Payment Modal */
         .payment-modal .modal-title { text-align:center; font-size:24px; font-weight:800; margin-bottom:4px; }
@@ -784,6 +796,8 @@
             signup_phone: 'Phone Number',
             signup_phone_ph: '09XXXXXXXX',
             signup_continue: 'Continue',
+            status_available: 'Available',
+            status_unavailable: 'Not Available',
             detail_location: 'Location',
             detail_experience: 'Experience',
             detail_price: 'Price',
@@ -811,6 +825,8 @@
             toast_user_not_logged: 'User not logged in. Please reload.',
             toast_payment_failed: 'Payment verification failed',
             toast_worker_error: 'Error loading worker details',
+            toast_duplicate_payment: 'You already have a pending or completed payment for this worker.',
+            refresh_status: 'Refresh Status',
         },
         am: {
             app_name: 'ዲጂታል ደላላ',
@@ -826,6 +842,8 @@
             signup_phone: 'ስልክ ቁጥር',
             signup_phone_ph: '09XXXXXXXX',
             signup_continue: 'ቀጥል',
+            status_available: 'ይገኛል',
+            status_unavailable: 'አይገኝም',
             detail_location: 'አካባቢ',
             detail_experience: 'ልምድ',
             detail_price: 'ዋጋ',
@@ -853,6 +871,8 @@
             toast_user_not_logged: 'ተጠቃሚ አልገባም። እባክዎ ገፁን እንደገና ይጫኑ።',
             toast_payment_failed: 'ክፍያ ማረጋገጥ አልተሳካም',
             toast_worker_error: 'የሰራተኛ ዝርዝሮችን በማግኘት ላይ ስህተት',
+            toast_duplicate_payment: 'ለዚህ ሰራተኛ ቀድሞውኑ በመጠባበቅ ላይ ወይም የተጠናቀቀ ክፍያ አለዎት።',
+            refresh_status: 'ሁኔታ አድስ',
         }
     };
 
@@ -1067,7 +1087,6 @@
                 `<img src="${imgSrc}" alt="${worker.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;"><i class="fas fa-user"></i></div>` :
                 `<i class="fas fa-user"></i>`;
 
-            // Green dot: available = green, unavailable = gray
             const dotClass = worker.isAvailable ? 'available' : 'unavailable';
 
             return `
@@ -1135,7 +1154,8 @@
             const worker = workerData.data;
             currentWorkerId = workerId;
 
-            const existingTx = userTransactions.find(t => t.workerId?._id === workerId || t.workerId === workerId);
+            // Use fresh txData from fetchUserTransactions()
+            const existingTx = txData.find(t => t.workerId?._id === workerId || t.workerId === workerId);
             const isCompleted = existingTx?.status === 'completed';
             const isPending = existingTx?.status === 'pending';
             const phoneNumber = isCompleted ? existingTx.phoneNumber : null;
@@ -1153,6 +1173,9 @@
                 actionHtml = `
                     <div class="payment-pending">
                         <i class="fas fa-clock"></i> ${translate('payment_pending')}
+                        <button class="btn-edit" style="margin-left:10px; padding:4px 12px;" onclick="openWorkerDetail('${workerId}')">
+                            <i class="fas fa-sync"></i> ${translate('refresh_status')}
+                        </button>
                     </div>
                 `;
             } else {
@@ -1258,16 +1281,24 @@
 
             if (data.success) {
                 showToast('toast_payment_recorded', 'success');
+                // Clear input
+                document.getElementById('telebirrId').value = '';
                 paymentModal.style.display = 'none';
                 document.body.style.overflow = 'auto';
                 await fetchUserTransactions();
+                // Reopen worker detail to show pending state
                 setTimeout(() => {
                     workerModal.style.display = 'none';
                     document.body.style.overflow = 'auto';
                     openWorkerDetail(currentWorkerId);
                 }, 1000);
             } else {
-                showToast('toast_payment_failed', 'error');
+                // Handle duplicate payment error
+                if (data.error && data.error.includes('already have a pending')) {
+                    showToast('toast_duplicate_payment', 'error');
+                } else {
+                    showToast('toast_payment_failed', 'error');
+                }
             }
         } catch (error) {
             showToast('toast_network_error', 'error');
@@ -1314,7 +1345,7 @@
         }
     });
 
-    console.log('🚀 Digital Delala - Green Dot Status');
+    console.log('🚀 Digital Delala - Green Dot Status (Fully Updated)');
 </script>
 </body>
 </html>
