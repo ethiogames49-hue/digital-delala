@@ -239,7 +239,7 @@
             margin-bottom: 16px;
         }
         .worker-avatar {
-            width: 96px; /* larger */
+            width: 96px;
             height: 96px;
             border-radius: 50%;
             flex-shrink: 0;
@@ -506,7 +506,7 @@
 
         /* ─── Worker Detail ─── */
         .worker-detail-avatar {
-            width: 160px; /* much larger */
+            width: 160px;
             height: 160px;
             border-radius: 50%;
             margin: 0 auto 18px;
@@ -1339,7 +1339,8 @@
     // ─── Image URL Helper ───
     function getImageUrl(image) {
         if (!image) return null;
-        if (image.startsWith('http://') || image.startsWith('https://')) {
+        // If it starts with http, https, or data: use as-is
+        if (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:')) {
             return image;
         }
         return window.location.origin + '/uploads/' + image;
@@ -1484,9 +1485,12 @@
 
         workersGrid.innerHTML = workers.map(worker => {
             const imgSrc = getImageUrl(worker.image);
-            const avatarHtml = imgSrc ?
-                `<img src="${imgSrc}" alt="${worker.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;"><i class="fas fa-user"></i></div>` :
-                `<i class="fas fa-user"></i>`;
+            let avatarHtml;
+            if (imgSrc) {
+                avatarHtml = `<img src="${imgSrc}" alt="${worker.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;"><i class="fas fa-user"></i></div>`;
+            } else {
+                avatarHtml = `<i class="fas fa-user"></i>`;
+            }
 
             const dotClass = worker.isAvailable ? 'available' : 'unavailable';
 
@@ -1589,7 +1593,7 @@
             }
 
             const imgSrc = getImageUrl(worker.image);
-            const avatarHtml = imgSrc ?
+            let avatarHtml = imgSrc ?
                 `<img src="${imgSrc}" alt="${worker.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;"><i class="fas fa-user"></i></div>` :
                 `<i class="fas fa-user"></i>`;
 
