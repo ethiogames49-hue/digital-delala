@@ -94,6 +94,10 @@ const transactionSchema = new mongoose.Schema({
   phoneNumber: { type: String }, // worker's phone (unlocked)
   createdAt: { type: Date, default: Date.now }
 });
+
+// TTL index to auto-delete pending transactions after 7 days
+transactionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 604800, partialFilterExpression: { status: 'pending' } });
+
 const Transaction = mongoose.model('Transaction', transactionSchema);
 
 const adminSchema = new mongoose.Schema({
@@ -116,6 +120,13 @@ const authenticateToken = (req, res, next) => {
   } catch {
     return res.status(403).json({ error: 'Invalid or expired token.' });
   }
+};
+
+// Helper to parse boolean from string/boolean
+const parseBoolean = (val) => {
+  if (typeof val === 'boolean') return val;
+  if (typeof val === 'string') return val.toLowerCase() === 'true';
+  return false;
 };
 
 // ============ PUBLIC ROUTES ============
@@ -185,14 +196,31 @@ app.post('/api/workers/:id/phone', async (req, res) => {
     if (!telebirrTransactionId || !userId || !amount) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
+
+    // FIX: Check if worker is available
+    if (!worker.isAvailable) {
+      return res.status(400).json({ error: 'Worker is not available' });
+    }
+
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const existing = await Transaction.findOne({ telebirrTransactionId });
-    if (existing) return res.status(400).json({ error: 'Transaction ID already used' });
+    // FIX: Prevent duplicate payment for same worker by this user (pending or completed)
+    const existingTx = await Transaction.findOne({
+      userId,
+      workerId: req.params.id,
+      status: { $in: ['pending', 'completed'] }
+    });
+    if (existingTx) {
+      return res.status(400).json({
+        error: 'You already have a pending or completed transaction for this worker.'
+      });
+    }
 
+    // FIX: Catch duplicate Telebirr ID
     const transaction = new Transaction({
       workerId: worker._id,
       userId: user._id,
@@ -200,9 +228,10 @@ app.post('/api/workers/:id/phone', async (req, res) => {
       bossPhone: user.phone,
       amount,
       telebirrTransactionId,
-      status: 'pending', // starts as pending
-      phoneNumber: worker.phone // store the worker's phone (will be revealed only when confirmed)
+      status: 'pending',
+      phoneNumber: worker.phone // stored but not revealed until confirmed
     });
+
     await transaction.save();
 
     res.json({
@@ -211,6 +240,10 @@ app.post('/api/workers/:id/phone', async (req, res) => {
       data: { transactionId: transaction._id }
     });
   } catch (error) {
+    // Duplicate key error (telebirrTransactionId)
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Transaction ID already used. Please check and try again.' });
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -226,7 +259,7 @@ app.get('/api/users/:userId/transactions', async (req, res) => {
     const data = transactions.map(t => {
       const obj = t.toObject();
       if (t.status !== 'completed') {
-        obj.phoneNumber = null; // don't reveal
+        obj.phoneNumber = null;
       }
       return obj;
     });
@@ -285,7 +318,23 @@ app.put('/api/admin/transactions/:id/confirm', authenticateToken, async (req, re
   }
 });
 
-// Create worker (admin) – already includes phone
+// NEW: Reject a pending transaction (admin)
+app.put('/api/admin/transactions/:id/reject', authenticateToken, async (req, res) => {
+  try {
+    const transaction = await Transaction.findById(req.params.id);
+    if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
+    if (transaction.status !== 'pending') {
+      return res.status(400).json({ error: 'Transaction already processed' });
+    }
+    transaction.status = 'failed';
+    await transaction.save();
+    res.json({ success: true, message: 'Transaction rejected.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create worker (admin)
 app.post('/api/admin/workers', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const workerData = { ...req.body };
@@ -293,9 +342,10 @@ app.post('/api/admin/workers', authenticateToken, upload.single('image'), async 
     else if (req.body.imageUrl && req.body.imageUrl.trim() !== '') {
       workerData.image = req.body.imageUrl.trim();
     }
-    if (workerData.isAvailable === 'true') workerData.isAvailable = true;
-    else if (workerData.isAvailable === 'false') workerData.isAvailable = false;
-
+    // FIX: Use helper to parse isAvailable
+    if (workerData.isAvailable !== undefined) {
+      workerData.isAvailable = parseBoolean(workerData.isAvailable);
+    }
     const worker = new Worker(workerData);
     await worker.save();
     res.status(201).json({ success: true, data: worker });
@@ -312,7 +362,9 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
 
     const updateData = { ...req.body };
+    // Handle image update
     if (req.file) {
+      // Remove old image if exists and not a URL
       if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
         const oldPath = path.join(uploadDir, worker.image);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
@@ -320,11 +372,13 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
       updateData.image = req.file.filename;
     } else if (req.body.imageUrl && req.body.imageUrl.trim() !== '') {
       updateData.image = req.body.imageUrl.trim();
+      // Remove old local file
       if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
         const oldPath = path.join(uploadDir, worker.image);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
       }
     } else {
+      // If image is explicitly set to empty string, remove image
       if (req.body.image === '') {
         if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
           const oldPath = path.join(uploadDir, worker.image);
@@ -332,12 +386,15 @@ app.put('/api/admin/workers/:id', authenticateToken, upload.single('image'), asy
         }
         updateData.image = null;
       } else {
+        // keep existing
         updateData.image = worker.image;
       }
     }
 
-    if (updateData.isAvailable === 'true') updateData.isAvailable = true;
-    else if (updateData.isAvailable === 'false') updateData.isAvailable = false;
+    // FIX: Parse isAvailable
+    if (updateData.isAvailable !== undefined) {
+      updateData.isAvailable = parseBoolean(updateData.isAvailable);
+    }
 
     Object.assign(worker, updateData);
     await worker.save();
@@ -353,18 +410,24 @@ app.delete('/api/admin/workers/:id', authenticateToken, async (req, res) => {
   try {
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ error: 'Worker not found' });
+
+    // FIX: Mark related transactions as failed to avoid orphan references
+    await Transaction.updateMany({ workerId: worker._id }, { status: 'failed' });
+
+    // Delete image file if local
     if (worker.image && !worker.image.startsWith('http://') && !worker.image.startsWith('https://')) {
       const oldPath = path.join(uploadDir, worker.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
+
     await worker.deleteOne();
-    res.json({ success: true, message: 'Worker deleted successfully' });
+    res.json({ success: true, message: 'Worker deleted and related transactions marked as failed.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get all transactions (admin) – used for dashboard
+// Get all transactions (admin)
 app.get('/api/admin/transactions', authenticateToken, async (req, res) => {
   try {
     const transactions = await Transaction.find()
