@@ -384,8 +384,14 @@
             background: linear-gradient(135deg, rgba(124, 108, 240, 0.4), transparent 70%);
         }
         @keyframes cardFadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         .worker-card:nth-child(1) { animation-delay: 0.02s; }
         .worker-card:nth-child(2) { animation-delay: 0.06s; }
@@ -397,12 +403,13 @@
         .worker-card-top {
             display: flex;
             align-items: center;
-            gap: 20px; /* increased gap for larger avatar */
+            gap: 16px;
             margin-bottom: 12px;
         }
+        /* --- BIGGER AVATAR (96px) --- */
         .worker-avatar {
-            width: 96px; /* BIGGER */
-            height: 96px; /* BIGGER */
+            width: 96px;
+            height: 96px;
             border-radius: 50%;
             flex-shrink: 0;
             overflow: hidden;
@@ -410,13 +417,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 24px rgba(124, 108, 240, 0.15);
+            box-shadow: 0 0 24px rgba(124, 108, 240, 0.12);
             border: 2px solid rgba(255, 255, 255, 0.06);
             transition: var(--transition);
         }
         .worker-card:hover .worker-avatar {
             border-color: rgba(124, 108, 240, 0.3);
-            box-shadow: 0 0 36px rgba(124, 108, 240, 0.2);
+            box-shadow: 0 0 32px rgba(124, 108, 240, 0.18);
         }
         .worker-avatar img {
             width: 100%;
@@ -424,7 +431,7 @@
             object-fit: cover;
         }
         .worker-avatar i {
-            font-size: 40px; /* BIGGER icon */
+            font-size: 40px;
             color: white;
             opacity: 0.8;
         }
@@ -1148,11 +1155,11 @@
             .search-bar .search-btn { justify-content: center; padding: 8px; width: 100%; }
             .main { padding: 0 16px 12px; }
             .section-header h2 { font-size: 16px; }
-            .workers-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+            .workers-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
             .worker-card { padding: 16px; }
-            .worker-card-top { gap: 14px; }
-            .worker-avatar { width: 72px; height: 72px; } /* bigger on tablet */
-            .worker-avatar i { font-size: 28px; }
+            /* Smaller avatar on mobile but still bigger than before */
+            .worker-avatar { width: 72px; height: 72px; }
+            .worker-avatar i { font-size: 30px; }
             .worker-name { font-size: 16px; }
             .worker-detail-avatar { width: 96px; height: 96px; }
             .worker-detail-avatar i { font-size: 38px; }
@@ -1172,7 +1179,7 @@
             .hero-stats .stat-item strong { font-size: 11px; }
             .workers-grid { grid-template-columns: 1fr; }
             .worker-card { padding: 14px; }
-            .worker-avatar { width: 72px; height: 72px; } /* keep large even on small screens */
+            .worker-avatar { width: 64px; height: 64px; }
             .worker-avatar i { font-size: 28px; }
             .worker-detail-avatar { width: 80px; height: 80px; }
             .worker-detail-avatar i { font-size: 32px; }
@@ -1993,7 +2000,7 @@
             }
         });
 
-        console.log('🚀 Digital Delala - Big Avatars, Compact Pro UI');
+        console.log('🚀 Digital Delala - Big Avatars & Compact Pro UI');
     </script>
 </body>
 </html>
